@@ -1,22 +1,10 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, \
-                            QLCDNumber, QLabel
+from PyQt5.QtWidgets import *
 
 
 class PREF:
-    VERSION = "0.1a"
-    WINDOW_SIZE = (256, 256)
-    BTN_GRID_POS = (8, 128)
-    BTN_SIZE = (64, 32)
-    BTN_SEP = (4, 4)
-    INP_GRID_POS = (8, 8)
+    VERSION = "0.2a"
     INP_NUM = 2
-    INP_SIZE = (96, 32)
-    INP_SEP = 8
-    OUT_POS = (8 + 96 + 16, 8 + 4)
-    OUT_SIZE = (128, 64)
-    OUT_LEN = 5
-    ERR_POS = (4, 128 + 36 * 2 + 4)
 
 
 def binOper(func):
@@ -36,50 +24,55 @@ class MainWidget(QWidget):
         self.initUI()
     
     def initUI(self):
+        # ===[   Window Setup   ]===
         self.resize(*(PREF.WINDOW_SIZE))
         self.setWindowTitle("Abel Calculator v{}".format(PREF.VERSION))
         
-        self.errMsg = QLabel(self)
-        self.errMsg.setText("")
-        self.errMsg.move(*(PREF.ERR_POS))
-        
-        self.output = QLCDNumber(self)
-        self.output.resize(*(PREF.OUT_SIZE))
-        self.output.move(*(PREF.OUT_POS))
-        
-        self.inputs = [QLineEdit(self) for _ in range(PREF.INP_NUM)]
-        for i, lInp in enumerate(self.inputs):
-            lInp.resize(*(PREF.INP_SIZE))
-            lInp.move(PREF.INP_GRID_POS[0],
-                      PREF.INP_GRID_POS[1] + (PREF.INP_SIZE[1] + PREF.INP_SEP) * i)
-        
+        # ===[   Widgets Setup   ]===
         def _genBtn(name, op):
             lBtn = QPushButton(op, self)
             lBtn.clicked.connect(getattr(self, "do_{}".format(name)))
             return lBtn
-        
         addBtn = _genBtn("add", "+")
-        
         subBtn = _genBtn("sub", "-")
-        
         mulBtn = _genBtn("mul", "*")
-        
         divBtn = _genBtn("div", "/")
-        
         modBtn = _genBtn("mod", "%")
-        
         idivBtn = _genBtn("idiv", "//")
         
-        self.btnGrid = [[addBtn, subBtn, modBtn], [mulBtn, divBtn, idivBtn]]
-        for y, lRow in enumerate(self.btnGrid):
-            for x, lBtn in enumerate(lRow):
-                lBtn.resize(*(PREF.BTN_SIZE))
-                lBtn.move(PREF.BTN_GRID_POS[0] + (PREF.BTN_SIZE[0] + PREF.BTN_SEP[0]) * x,
-                          PREF.BTN_GRID_POS[1] + (PREF.BTN_SIZE[1] + PREF.BTN_SEP[1]) * y)
+        self.output = QLCDNumber(self)
+        self.output.setMaximumHeight(46)
+        
+        # ===[   Layouts Setup   ]===
+        VLayoutGeneral = QVBoxLayout(self)
+        HLayoutIO = QHBoxLayout(self)
+        VLayoutInputs = QVBoxLayout(self)
+        GLayoutButtons = QGridLayout(self)
+        
+        GLayoutButtons.addWidget(addBtn, 0, 0)
+        GLayoutButtons.addWidget(subBtn, 0, 1)
+        GLayoutButtons.addWidget(mulBtn, 1, 0)
+        GLayoutButtons.addWidget(divBtn, 1, 1)
+        GLayoutButtons.addWidget(modBtn, 2, 0)
+        GLayoutButtons.addWidget(idivBtn, 2, 1)
+        
+        self.inputs = []
+        for i in range(PREF.INP_NUM):
+            lInput = QLineEdit(self)
+            self.inputs.append(lInput)
+            VLayoutInputs.addWidget(lInput)
+        
+        HLayoutIO.addLayout(VLayoutInputs, 1)
+        HLayoutIO.addWidget(self.output, 5)
+        
+        VLayoutGeneral.addLayout(HLayoutIO, 0)
+        VLayoutGeneral.addLayout(GLayoutButtons, 1)
+        
+        self.setLayout(VLayoutGeneral)
+        # ===[   End   ]===
     
     def handleError(self, err):
-        self.errMsg.setText(repr(err))
-        self.errMsg.adjustSize()
+        QErrorMessage.qtHandler().showMessage(repr(err))
     
     @binOper
     def do_add(a, b):
