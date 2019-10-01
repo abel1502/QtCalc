@@ -7,11 +7,10 @@ class PREF:
     INP_NUM = 2
 
 
-def binOper(func):
+def btnOper(func):
     def wrapper(self):
         try:
-            lA, lB = map(lambda x: int(x.text()), self.inputs)
-            lRes = func(lA, lB)
+            lRes = func(*map(lambda x: int(x.text()), self.inputs))
             self.output.display(str(lRes)[:PREF.OUT_LEN])
         except Exception as e:
             self.handleError(e)
@@ -74,27 +73,27 @@ class MainWidget(QWidget):
     def handleError(self, err):
         QErrorMessage.qtHandler().showMessage(repr(err))
     
-    @binOper
+    @btnOper
     def do_add(a, b):
         return a + b
     
-    @binOper
+    @btnOper
     def do_sub(a, b):
         return a - b
     
-    @binOper
+    @btnOper
     def do_mul(a, b):
         return a * b
     
-    @binOper
+    @btnOper
     def do_div(a, b):
         return a / b
     
-    @binOper
+    @btnOper
     def do_mod(a, b):
         return a % b
     
-    @binOper
+    @btnOper
     def do_idiv(a, b):
         return a // b
 
