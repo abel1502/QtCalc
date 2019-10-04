@@ -1,101 +1,99 @@
 import sys
 from PyQt5.QtWidgets import *
+from PyQt5 import uic
 
 
 class PREF:
-    VERSION = "0.2a"
+    VERSION = "0.3a"
     INP_NUM = 2
+    OUT_LEN = 7
+    DBG_UI_PATH = "design.ui"
 
 
-def btnOper(func):
-    def wrapper(self):
-        try:
-            lRes = func(*map(lambda x: int(x.text()), self.inputs))
-            self.output.display(str(lRes)[:PREF.OUT_LEN])
-        except Exception as e:
-            self.handleError(e)
-    return wrapper
+#def btnOper(func):
+    #def wrapper(self):
+        #try:
+            #lRes = str(func(*map(lambda x: float(x.text()), self.inputs)))[:PREF.OUT_LEN]
+            #self.output.setDigitCount(lRes)
+            #self.output.display(lRes)
+        #except Exception as e:
+            #self.handleError(e)
+    #return wrapper
 
 
-class MainWidget(QWidget):
+class MainWidget(QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.initUI()
+        uic.loadUi(PREF.DBG_UI_PATH, self)
+        self.postInit()
     
-    def initUI(self):
-        # ===[   Window Setup   ]===
-        self.resize(*(PREF.WINDOW_SIZE))
+    def postInit(self):
+        self.curExpr = ""
+        self.curNumber = ""
+        
         self.setWindowTitle("Abel Calculator v{}".format(PREF.VERSION))
         
-        # ===[   Widgets Setup   ]===
-        def _genBtn(name, op):
-            lBtn = QPushButton(op, self)
-            lBtn.clicked.connect(getattr(self, "do_{}".format(name)))
+        self.actionExit.triggered.connect(lambda: sys.exit(0))
+        
+        def genInpBtn(text, x, y, name="", *args):
+            lBtn = QPushButton(name if name else text, self)
+            lBtn.clicked.connect(lambda: self.processInput(text))
+            lBtn.setMinimumSize(32, 32)
+            self.GLayoutKbd.addWidget(lBtn, x, y, *args)
             return lBtn
-        addBtn = _genBtn("add", "+")
-        subBtn = _genBtn("sub", "-")
-        mulBtn = _genBtn("mul", "*")
-        divBtn = _genBtn("div", "/")
-        modBtn = _genBtn("mod", "%")
-        idivBtn = _genBtn("idiv", "//")
         
-        self.output = QLCDNumber(self)
-        self.output.setMaximumHeight(46)
+        def genActBtn(text, action, x, y, *args):
+            lBtn = QPushButton(text, self)
+            lBtn.clicked.connect(action)
+            lBtn.setMinimumSize(32, 32)
+            self.GLayoutKbd.addWidget(lBtn, x, y, *args)
+            return lBtn
         
-        # ===[   Layouts Setup   ]===
-        VLayoutGeneral = QVBoxLayout(self)
-        HLayoutIO = QHBoxLayout(self)
-        VLayoutInputs = QVBoxLayout(self)
-        GLayoutButtons = QGridLayout(self)
+        genInpBtn("1", 0, 0)
+        genInpBtn("2", 0, 1)
+        genInpBtn("3", 0, 2)
+        genInpBtn("4", 1, 0)
+        genInpBtn("5", 1, 1)
+        genInpBtn("6", 1, 2)
+        genInpBtn("7", 2, 0)
+        genInpBtn("8", 2, 1)
+        genInpBtn("9", 2, 2)
+        genActBtn("C", self.clear, 3, 0)
+        genInpBtn("0", 3, 1)
+        genInpBtn(".", 3, 2)
         
-        GLayoutButtons.addWidget(addBtn, 0, 0)
-        GLayoutButtons.addWidget(subBtn, 0, 1)
-        GLayoutButtons.addWidget(mulBtn, 1, 0)
-        GLayoutButtons.addWidget(divBtn, 1, 1)
-        GLayoutButtons.addWidget(modBtn, 2, 0)
-        GLayoutButtons.addWidget(idivBtn, 2, 1)
+        genInpBtn("/", 0, 3)
+        genInpBtn("*", 1, 3)
+        genInpBtn("-", 2, 3)
+        genInpBtn("+", 3, 3)
         
-        self.inputs = []
-        for i in range(PREF.INP_NUM):
-            lInput = QLineEdit(self)
-            self.inputs.append(lInput)
-            VLayoutInputs.addWidget(lInput)
+        genInpBtn("//", 0, 4)
+        genInpBtn("%", 1, 4)
+        lEq = genActBtn("=", self.calculate, 2, 4, 2, 1)
+        lEq.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
-        HLayoutIO.addLayout(VLayoutInputs, 1)
-        HLayoutIO.addWidget(self.output, 5)
         
-        VLayoutGeneral.addLayout(HLayoutIO, 0)
-        VLayoutGeneral.addLayout(GLayoutButtons, 1)
-        
-        self.setLayout(VLayoutGeneral)
-        # ===[   End   ]===
     
     def handleError(self, err):
         QErrorMessage.qtHandler().showMessage(repr(err))
     
-    @btnOper
-    def do_add(a, b):
-        return a + b
+    def processInput(self, value):
+        self.curExpr += value
+        if value in ".0123456789":
+            self.curNumber += value
+        else:
+            self.curNumber = ""
+        self.setOutput(self.curNumber)
     
-    @btnOper
-    def do_sub(a, b):
-        return a - b
+    def setOutput(self, value):
+        self.output.setDigitCount(len(value))
+        self.output.display(value)
     
-    @btnOper
-    def do_mul(a, b):
-        return a * b
+    def clear(self):
+        pass
     
-    @btnOper
-    def do_div(a, b):
-        return a / b
-    
-    @btnOper
-    def do_mod(a, b):
-        return a % b
-    
-    @btnOper
-    def do_idiv(a, b):
-        return a // b
+    def calculate(self):
+        pass
 
 
 def main():
