@@ -8,17 +8,9 @@ class PREF:
     INP_NUM = 2
     OUT_LEN = 7
     DBG_UI_PATH = "design.ui"
-
-
-#def btnOper(func):
-    #def wrapper(self):
-        #try:
-            #lRes = str(func(*map(lambda x: float(x.text()), self.inputs)))[:PREF.OUT_LEN]
-            #self.output.setDigitCount(lRes)
-            #self.output.display(lRes)
-        #except Exception as e:
-            #self.handleError(e)
-    #return wrapper
+    INP_BTN_STYLE = ""
+    ACT_BTN_STYLE = ""
+    VAR_COUNT = 10
 
 
 class MainWidget(QMainWindow):
@@ -28,17 +20,20 @@ class MainWidget(QMainWindow):
         self.postInit()
     
     def postInit(self):
-        self.curExpr = ""
-        self.curNumber = ""
+        self.curExpr = []
+        self.variables = ["0" for _ in range(PREF.VAR_COUNT)]
         
         self.setWindowTitle("Abel Calculator v{}".format(PREF.VERSION))
         
         self.actionExit.triggered.connect(lambda: sys.exit(0))
+        self.actionSaveVariable.triggered.connect(self.saveVar)
+        self.actionLoadVariable.triggered.connect(self.loadVar)
         
         def genInpBtn(text, x, y, name="", *args):
             lBtn = QPushButton(name if name else text, self)
             lBtn.clicked.connect(lambda: self.processInput(text))
             lBtn.setMinimumSize(32, 32)
+            lBtn.setStyleSheet(PREF.INP_BTN_STYLE)
             self.GLayoutKbd.addWidget(lBtn, x, y, *args)
             return lBtn
         
@@ -46,6 +41,7 @@ class MainWidget(QMainWindow):
             lBtn = QPushButton(text, self)
             lBtn.clicked.connect(action)
             lBtn.setMinimumSize(32, 32)
+            lBtn.setStyleSheet(PREF.ACT_BTN_STYLE)
             self.GLayoutKbd.addWidget(lBtn, x, y, *args)
             return lBtn
         
@@ -75,33 +71,53 @@ class MainWidget(QMainWindow):
         genActBtn("<-", self.backspace, 0, 5)
         	
         lEq = genActBtn("=", self.calculate, 2, 5, 2, 1)
-        lEq.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        
+        lEq.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         
     
     def handleError(self, err):
         QErrorMessage.qtHandler().showMessage(repr(err))
     
-    def processInput(self, value):
-        self.curExpr += value
-        if value in ".0123456789":
-            self.curNumber += value
-        else:
-            self.curNumber = ""
-        self.setOutput(self.curNumber)
+    def saveVar(self):
+        if "=" not in self.output.text():
+            return
+        value = self.output.text().split("=")[-1]
+        varId = QInputDialog.getInt(self, "Select Variable", "In which slot to save the value?", 0, 0, PREF.VAR_COUNT)
+        self.variables[varId] = value
+        self.curExpr.extend(list(value))
+        self.setOutput()
     
-    def setOutput(self, value):
-        #self.output.setDigitCount(len(value))
+    def loadVar(self):
+        varId = QInputDialog.getInt(self, "Select Variable", "From which slot to load the value?", 0, 0, PREF.VAR_COUNT)
+        value = self.variables[varId]
+        # TODO
+    
+    def processInput(self, value):
+        self.curExpr.append(value)
+        self.setOutput()
+    
+    def setOutput(self, value=None):
+        if value == None:
+            value = ''.join(self.curExpr)
+            #value = value if value else "0"
         self.output.setText(value)
     
     def clear(self):
-        pass
+        self.curExpr = []
+        self.setOutput('')
     
     def backspace(self):
-        pass
+        if self.curExpr:
+            self.curExpr.pop()
+        self.setOutput()
     
     def calculate(self):
-        pass
+        try:
+            lExpr = ''.join(self.curExpr)
+            lExpr = lExpr if lExpr else "0"
+            value = eval(lExpr)
+            self.setOutput("{}={}".format(lExpr, str(value)))
+        except Exception as e:
+            self.handleError(e)
 
 
 def main():
