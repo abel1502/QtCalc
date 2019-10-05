@@ -69,7 +69,12 @@ class MainWidget(QMainWindow):
         
         genInpBtn("//", 0, 4)
         genInpBtn("%", 1, 4)
-        lEq = genActBtn("=", self.calculate, 2, 4, 2, 1)
+        genInpBtn("(", 2, 4)
+        genInpBtn(")", 3, 4)
+        
+        genActBtn("<-", self.backspace, 0, 5)
+        	
+        lEq = genActBtn("=", self.calculate, 2, 5, 2, 1)
         lEq.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
         
@@ -90,6 +95,9 @@ class MainWidget(QMainWindow):
         self.output.display(value)
     
     def clear(self):
+        pass
+    
+    def backspace(self):
         pass
     
     def calculate(self):
