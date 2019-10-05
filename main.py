@@ -91,8 +91,8 @@ class MainWidget(QMainWindow):
         self.setOutput(self.curNumber)
     
     def setOutput(self, value):
-        self.output.setDigitCount(len(value))
-        self.output.display(value)
+        #self.output.setDigitCount(len(value))
+        self.output.setText(value)
     
     def clear(self):
         pass
