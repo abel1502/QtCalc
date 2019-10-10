@@ -1,16 +1,20 @@
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5 import uic
+from copy import deepcopy
 
 
 class PREF:
-    VERSION = "0.3a"
+    VERSION = "0.4"
+    NAME = "Abel Calculator v{}".format(VERSION)
     INP_NUM = 2
     OUT_LEN = 7
     DBG_UI_PATH = "design.ui"
     INP_BTN_STYLE = ""
     ACT_BTN_STYLE = ""
     VAR_COUNT = 10
+    VAR_LABEL = "<{}>={}"
+    ABOUT = "Abel Calculator is a small app made by\nAndrew Belyaev (Russia, Moscow, School 179)\nas a scholar micro-project.\n\nThis project is hosted on GitHub at\nhttps://github.com/abel1502/QtCalc"
 
 
 class MainWidget(QMainWindow):
@@ -23,11 +27,23 @@ class MainWidget(QMainWindow):
         self.curExpr = []
         self.variables = ["0" for _ in range(PREF.VAR_COUNT)]
         
-        self.setWindowTitle("Abel Calculator v{}".format(PREF.VERSION))
+        self.setWindowTitle(PREF.NAME)
         
         self.actionExit.triggered.connect(lambda: sys.exit(0))
-        self.actionSaveVariable.triggered.connect(self.saveVar)
-        self.actionLoadVariable.triggered.connect(self.loadVar)
+        self.actionAbout.triggered.connect(lambda: QMessageBox.about(self, "About " + PREF.NAME, PREF.ABOUT))
+        
+        self.saveVarAction = []
+        self.loadVarAction = []
+        for i in range(PREF.VAR_COUNT):
+            lAction = QAction(PREF.VAR_LABEL.format(i, self.variables[i]), self.menuSaveVariable)
+            lAction.triggered.connect((lambda i: lambda: self.saveVar(i))(i))
+            self.menuSaveVariable.addAction(lAction)
+            self.saveVarAction.append(lAction)
+            
+            lAction = QAction(PREF.VAR_LABEL.format(i, self.variables[i]), self.menuLoadVariable)
+            lAction.triggered.connect((lambda i: lambda: self.loadVar(i))(i))
+            self.menuLoadVariable.addAction(lAction)
+            self.loadVarAction.append(lAction)
         
         def genInpBtn(text, x, y, name="", *args):
             lBtn = QPushButton(name if name else text, self)
@@ -77,19 +93,26 @@ class MainWidget(QMainWindow):
     def handleError(self, err):
         QErrorMessage.qtHandler().showMessage(repr(err))
     
-    def saveVar(self):
+    def updateVarNames(self):
+        for i in range(PREF.VAR_COUNT):
+            self.saveVarAction[i].setText(PREF.VAR_LABEL.format(i, self.variables[i]))
+            self.loadVarAction[i].setText(PREF.VAR_LABEL.format(i, self.variables[i]))
+    
+    def saveVar(self, varId):
         if "=" not in self.output.text():
             return
         value = self.output.text().split("=")[-1]
-        varId = QInputDialog.getInt(self, "Select Variable", "In which slot to save the value?", 0, 0, PREF.VAR_COUNT)
         self.variables[varId] = value
+        print(value, varId)
+        sys.stdout.flush()
+        self.updateVarNames
+        self.saveVarAction[varId].setText(PREF.VAR_LABEL.format(varId, value))
+        self.loadVarAction[varId].setText(PREF.VAR_LABEL.format(varId, value))
+    
+    def loadVar(self, varId):
+        value = self.variables[varId]
         self.curExpr.extend(list(value))
         self.setOutput()
-    
-    def loadVar(self):
-        varId = QInputDialog.getInt(self, "Select Variable", "From which slot to load the value?", 0, 0, PREF.VAR_COUNT)
-        value = self.variables[varId]
-        # TODO
     
     def processInput(self, value):
         self.curExpr.append(value)

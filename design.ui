@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>icon.png</normaloff>icon.png</iconset>
+  </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
@@ -55,26 +59,53 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <addaction name="actionSaveVariable"/>
-    <addaction name="actionLoadVariable"/>
+    <widget class="QMenu" name="menuSaveVariable">
+     <property name="title">
+      <string>Save Variable</string>
+     </property>
+    </widget>
+    <widget class="QMenu" name="menuLoadVariable">
+     <property name="title">
+      <string>Load Variable</string>
+     </property>
+    </widget>
+    <addaction name="menuSaveVariable"/>
+    <addaction name="menuLoadVariable"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
+   <widget class="QMenu" name="menuAbout">
+    <property name="title">
+     <string>About</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuAbout"/>
   </widget>
   <action name="actionExit">
    <property name="text">
     <string>&amp;Exit</string>
    </property>
   </action>
-  <action name="actionSaveVariable">
+  <action name="actionTest">
    <property name="text">
-    <string>Save Variable</string>
+    <string>Test</string>
    </property>
   </action>
-  <action name="actionLoadVariable">
+  <action name="actionTest_2">
    <property name="text">
-    <string>Load Variable</string>
+    <string>Test</string>
+   </property>
+  </action>
+  <action name="actionTest_3">
+   <property name="text">
+    <string>Test</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
    </property>
   </action>
  </widget>
