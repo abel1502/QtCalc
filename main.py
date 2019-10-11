@@ -1,11 +1,13 @@
 import sys
 from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from PyQt5 import uic
 from copy import deepcopy
 
 
 class PREF:
-    VERSION = "0.4"
+    VERSION = "0.5"
     NAME = "Abel Calculator v{}".format(VERSION)
     INP_NUM = 2
     OUT_LEN = 7
@@ -45,10 +47,14 @@ class MainWidget(QMainWindow):
             self.menuLoadVariable.addAction(lAction)
             self.loadVarAction.append(lAction)
         
+        self.GLayoutKbd.setHorizontalSpacing(6)
+        self.GLayoutKbd.setVerticalSpacing(6)
+        
         def genInpBtn(text, x, y, name="", *args):
             lBtn = QPushButton(name if name else text, self)
             lBtn.clicked.connect(lambda: self.processInput(text))
             lBtn.setMinimumSize(32, 32)
+            lBtn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             lBtn.setStyleSheet(PREF.INP_BTN_STYLE)
             self.GLayoutKbd.addWidget(lBtn, x, y, *args)
             return lBtn
@@ -57,6 +63,7 @@ class MainWidget(QMainWindow):
             lBtn = QPushButton(text, self)
             lBtn.clicked.connect(action)
             lBtn.setMinimumSize(32, 32)
+            lBtn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             lBtn.setStyleSheet(PREF.ACT_BTN_STYLE)
             self.GLayoutKbd.addWidget(lBtn, x, y, *args)
             return lBtn
@@ -85,10 +92,21 @@ class MainWidget(QMainWindow):
         genInpBtn(")", 3, 4)
         
         genActBtn("<-", self.backspace, 0, 5)
-        	
-        lEq = genActBtn("=", self.calculate, 2, 5, 2, 1)
-        lEq.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
-        
+        genActBtn("=", self.calculate, 2, 5, 2, 1)
+    
+    def event(self, event):
+        if (event.type() == 51) and (event.key() == Qt.Key_Backspace):
+            self.backspace()
+            return True
+        return super().event(event)
+    
+    def keyPressEvent(self, event):
+        if event.text() in "01234567890*/+-%":
+            self.processInput(event.text())
+        if event.text() in "\r=":
+            self.calculate()
+        #print(repr(event.text()), event.key())
+        super().keyPressEvent(event)
     
     def handleError(self, err):
         QErrorMessage.qtHandler().showMessage(repr(err))
@@ -99,11 +117,14 @@ class MainWidget(QMainWindow):
             self.loadVarAction[i].setText(PREF.VAR_LABEL.format(i, self.variables[i]))
     
     def saveVar(self, varId):
-        if "=" not in self.output.text():
-            return
-        value = self.output.text().split("=")[-1]
+        if len(self.output.text()) == 0:
+            value = "0"
+        else:
+            if "=" not in self.output.text():
+                return
+            value = self.output.text().split("=")[-1]
         self.variables[varId] = value
-        print(value, varId)
+        #print(value, varId)
         sys.stdout.flush()
         self.updateVarNames
         self.saveVarAction[varId].setText(PREF.VAR_LABEL.format(varId, value))
@@ -121,7 +142,6 @@ class MainWidget(QMainWindow):
     def setOutput(self, value=None):
         if value == None:
             value = ''.join(self.curExpr)
-            #value = value if value else "0"
         self.output.setText(value)
     
     def clear(self):
