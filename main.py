@@ -101,7 +101,7 @@ class MainWidget(QMainWindow):
         return super().event(event)
     
     def keyPressEvent(self, event):
-        if event.text() in "01234567890*/+-%":
+        if event.text() in "01234567890*/+-%()":
             self.processInput(event.text())
         if event.text() in "\r=":
             self.calculate()
