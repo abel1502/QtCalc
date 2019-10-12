@@ -8,7 +8,7 @@ import math
 
 
 class STYLE:
-    GENERAL_BTN = """QPushButton:pressed {border-style: inset;background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(69, 209, 209), stop:1 rgb(69, 209, 209))}"""
+    GENERAL_BTN = """QPushButton:pressed {border-style: inset;background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(69, 209, 209), stop:1 rgb(69, 209, 209))} QPushButton {font-weight:bold;font-size:14px}"""
     NUM_BTN = """QPushButton {border-style: outset;border-width: 1px;border-radius: 1px;border-color: grey;margin: 0.5px;background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(210, 210, 210), stop:1 rgb(185, 185, 185))}""" + GENERAL_BTN
     INP_BTN = """QPushButton {border-style: outset;border-width: 1px;border-radius: 1px;border-color: grey;margin: 0.5px;background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(210, 210, 0), stop:1 rgb(185, 185, 0))}""" + GENERAL_BTN
     ACT_BTN = """QPushButton {border-style: outset;border-width: 1px;border-radius: 1px;border-color: grey;margin: 0.5px;background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(0, 150, 0), stop:1 rgb(0, 125, 0))}""" + GENERAL_BTN
@@ -25,7 +25,8 @@ class PREF:
     CONSTS = {"PI" : math.pi, "E" : math.e}
     FUNCS = {"log" : math.log, "cos" : math.cos, "sin" : math.sin, "tg" : math.tan, 
              "arccos" : math.acos, "arcsin" : math.asin, "arctg" : math.atan, "gcd" : math.gcd,
-             "factorial" : math.factorial, "abs" : abs, "deg" : math.degrees, "rad" : math.radians}
+             "factorial" : math.factorial, "abs" : abs, "deg" : math.degrees, "rad" : math.radians,
+             "int" : int, "float" : float}
     CURSOR = "_"
     VAR_COUNT = 10
     VAR_LABEL = "<{}>={}"
