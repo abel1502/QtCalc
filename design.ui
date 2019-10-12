@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>345</width>
-    <height>295</height>
+    <width>447</width>
+    <height>372</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,10 +18,7 @@
     <normaloff>icon.png</normaloff>icon.png</iconset>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,5">
-    <property name="spacing">
-     <number>6</number>
-    </property>
+   <layout class="QGridLayout" name="GLayout">
     <property name="leftMargin">
      <number>0</number>
     </property>
@@ -34,7 +31,7 @@
     <property name="bottomMargin">
      <number>0</number>
     </property>
-    <item>
+    <item row="0" column="0">
      <widget class="QLineEdit" name="output">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -47,6 +44,9 @@
         <pointsize>16</pointsize>
        </font>
       </property>
+      <property name="focusPolicy">
+       <enum>Qt::NoFocus</enum>
+      </property>
       <property name="readOnly">
        <bool>true</bool>
       </property>
@@ -55,9 +55,6 @@
       </property>
      </widget>
     </item>
-    <item>
-     <layout class="QGridLayout" name="GLayoutKbd"/>
-    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -65,8 +62,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>345</width>
-     <height>27</height>
+     <width>447</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -94,7 +91,25 @@
     </property>
     <addaction name="actionAbout"/>
    </widget>
+   <widget class="QMenu" name="menuInsert">
+    <property name="title">
+     <string>&amp;Insert</string>
+    </property>
+    <widget class="QMenu" name="menuConstant">
+     <property name="title">
+      <string>&amp;Constant</string>
+     </property>
+    </widget>
+    <widget class="QMenu" name="menuFunction">
+     <property name="title">
+      <string>&amp;Function</string>
+     </property>
+    </widget>
+    <addaction name="menuConstant"/>
+    <addaction name="menuFunction"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuInsert"/>
    <addaction name="menuAbout"/>
   </widget>
   <action name="actionExit">
