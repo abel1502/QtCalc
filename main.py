@@ -3,8 +3,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
-from copy import deepcopy
 import math
+import parser
 
 
 class STYLE:
@@ -17,7 +17,7 @@ class STYLE:
 
 
 class PREF:
-    VERSION = "0.6"
+    VERSION = "1.0"
     NAME = "Abel Calculator v{}".format(VERSION)
     INP_NUM = 2
     OUT_LEN = 7
@@ -52,7 +52,7 @@ class MainWidget(QMainWindow):
         
         for func in sorted(PREF.FUNCS):
             lAction = QAction(func, self.menuFunction)
-            lAction.triggered.connect((lambda i: lambda: self.addFunc(i))(func))
+            lAction.triggered.connect((lambda i: lambda: self.addName(i))(func))
             self.menuFunction.addAction(lAction)
         
         self.saveVarAction = []
@@ -133,6 +133,7 @@ class MainWidget(QMainWindow):
         self.curExpr = []
         self.variables = ["0" for _ in range(PREF.VAR_COUNT)]
         self.cursorPos = 0
+        self.parser = parser.Parser(aVars=PREF.CONSTS, aFuncs=PREF.FUNCS)
         
         self.initUI()
         
@@ -186,6 +187,10 @@ class MainWidget(QMainWindow):
         return self.curExpr
     
     def addExpr(self, item):
+        if item in ("**", "//"):
+            self.addExpr(item[0])
+            self.addExpr(item[0])
+            return
         self.curExpr.insert(self.cursorPos, item)
         self.cursorPos += 1
     
@@ -221,12 +226,7 @@ class MainWidget(QMainWindow):
         self.addName("var{}".format(varId))
     
     def addName(self, name):
-        self.addExpr("({})".format(name))
-        self.setOutput()
-        self.preCalculate()
-    
-    def addFunc(self, func):
-        self.addExpr("{}(".format(func))
+        self.addExpr(name)
         self.setOutput()
         self.preCalculate()
     
@@ -246,7 +246,7 @@ class MainWidget(QMainWindow):
     def clear(self):
         self.curExpr = []
         self.cursorPos = 0
-        self.setOutput('')
+        self.setOutput()
         self.preCalculate()
     
     def backspace(self):
@@ -280,12 +280,14 @@ class MainWidget(QMainWindow):
             self.setPreOutput("~")
     
     def evaluate(self, expr):
-        lLocals = {}
+        lVars = {}
         for i in range(PREF.VAR_COUNT):
-            lLocals["var{}".format(i)] = float(self.variables[i])
-        lLocals.update(PREF.CONSTS)
-        lLocals.update(PREF.FUNCS)
-        return eval(expr, globals(), lLocals)
+            lVars["var{}".format(i)] = float(self.variables[i])
+        self.parser.clear()
+        lExpr = self.getExpr()
+        self.parser.feed(lExpr)
+        self.parser.updateVarsFuncs(aVars=lVars)
+        return self.parser.evaluate()
 
 def main():
     lApplication = QApplication(sys.argv)
