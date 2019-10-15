@@ -1,8 +1,8 @@
 from enum import Enum
 
 
-class EmptyExprException(Exception):
-    pass
+#class EmptyExprException(Exception):
+#    pass
 
 
 class LexType(Enum):
@@ -85,10 +85,9 @@ class Parser:
     
     def evaluate(self):
         self.nextLex()
-        try:
-            lRes = self.parseExpr()
-        except EmptyExprException:
-            lRes = 0
+        if self.pCurLex.isEnd():
+            return 0
+        lRes = self.parseExpr()
         assert self.pCurLex.isEnd()
         return lRes
     
@@ -153,7 +152,7 @@ class Parser:
             return self.parseNumber()
         if self.pCurLex.pType is LexType.name:
             return self.parseName()
-        raise EmptyExprException()  # ?
+        assert False
     
     def parseNumber(self):
         lRes = []
@@ -174,7 +173,10 @@ class Parser:
         self.nextLex()
         if self.pCurLex.pType is LexType.bracketOpen:
             self.nextLex()
-            lRes = self.parseSequence()
+            if self.pCurLex.pType is LexType.bracketClose:
+                lRes = []
+            else:
+                lRes = self.parseSequence()
             assert self.pCurLex.pType is LexType.bracketClose
             self.nextLex()
             return self.pFuncs[lName](*lRes)  # TODO: Verify int/float
@@ -182,10 +184,7 @@ class Parser:
             return self.pVars[lName]
     
     def parseSequence(self):
-        try:
-            lRes = [self.parseExpr()]
-        except EmptyExprException:
-            return []
+        lRes = [self.parseExpr()]
         while self.pCurLex.pType is LexType.comma:
             self.nextLex()
             lRes.append(self.parseExpr())
