@@ -8,10 +8,10 @@ import math
 
 
 class STYLE:
-    GENERAL_BTN = """QPushButton:pressed {border-style: inset;background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(69, 209, 209), stop:1 rgb(69, 209, 209))} QPushButton {font-weight:bold;font-size:14px}"""
-    NUM_BTN = """QPushButton {border-style: outset;border-width: 1px;border-radius: 1px;border-color: grey;margin: 0.5px;background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(210, 210, 210), stop:1 rgb(185, 185, 185))}""" + GENERAL_BTN
-    INP_BTN = """QPushButton {border-style: outset;border-width: 1px;border-radius: 1px;border-color: grey;margin: 0.5px;background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(210, 210, 0), stop:1 rgb(185, 185, 0))}""" + GENERAL_BTN
-    ACT_BTN = """QPushButton {border-style: outset;border-width: 1px;border-radius: 1px;border-color: grey;margin: 0.5px;background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(0, 150, 0), stop:1 rgb(0, 125, 0))}""" + GENERAL_BTN
+    GENERAL_BTN = """QPushButton:pressed {border-style: inset;background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(69, 209, 209), stop:1 rgb(69, 209, 209))} QPushButton {font-weight:bold;font-size:14px;border-style: outset;border-width: 1px;border-radius: 1px;border-color: grey;margin: 0.5px;}"""
+    NUM_BTN = """QPushButton {background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(210, 210, 210), stop:1 rgb(185, 185, 185))}""" + GENERAL_BTN
+    INP_BTN = """QPushButton {background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(210, 210, 0), stop:1 rgb(185, 185, 0))}""" + GENERAL_BTN
+    ACT_BTN = """QPushButton {background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(0, 150, 0), stop:1 rgb(0, 125, 0))}""" + GENERAL_BTN
     PREVIEW = """QLineEdit {background-color: rgb(238, 238, 238);}"""
     OUTPUT = """QLineEdit {}"""    
 
@@ -198,15 +198,18 @@ class MainWidget(QMainWindow):
             self.loadVarAction[i].setText(PREF.VAR_LABEL.format(i, self.variables[i]))
     
     def saveVar(self, varId):
+        if self.preOutput.text() == "~":
+            self.handleError("Can't save a wrong variable")
+            return
         if len(self.preOutput.text()) == 0:
             value = "0"
         else:
             value = self.preOutput.text()
         if value[-2:] == ".0":
             value = value[:-2]
-        if "e" in value:
-            self.handleError("Value too big for variable")
-            return
+        #if "e" in value:
+        #    self.handleError("Value too big for variable")
+        #    return
         self.variables[varId] = value
         #print(value, varId)
         sys.stdout.flush()
