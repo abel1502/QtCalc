@@ -1,9 +1,9 @@
 from enum import Enum
 
 
-#class EmptyExprException(Exception):
-#    pass
-
+class ParserException(Exception):
+    def __init__(self, text, pos, *args, **kwargs):
+        super().__init__("{} at lexem #{}".format(text, pos), *args, **kwargs)
 
 class LexType(Enum):
     end = 0
@@ -88,7 +88,8 @@ class Parser:
         if self.pCurLex.isEnd():
             return 0
         lRes = self.parseExpr()
-        assert self.pCurLex.isEnd()
+        if not self.pCurLex.isEnd():
+            raise ParserException("Expression has an extra appendix", self.pCurId)
         return lRes
     
     def clear(self):

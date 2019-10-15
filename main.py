@@ -4,24 +4,31 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
 import math
-import parser
+import _parser
 
 
 class STYLE:
-    GENERAL_BTN = """QPushButton:pressed {border-style: inset;background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(69, 209, 209), stop:1 rgb(69, 209, 209))} QPushButton {font-weight:bold;font-size:14px;border-style: outset;border-width: 1px;border-radius: 1px;border-color: grey;margin: 0.5px;}"""
-    NUM_BTN = """QPushButton {background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(210, 210, 210), stop:1 rgb(185, 185, 185))}""" + GENERAL_BTN
-    INP_BTN = """QPushButton {background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(210, 210, 0), stop:1 rgb(185, 185, 0))}""" + GENERAL_BTN
-    ACT_BTN = """QPushButton {background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(0, 150, 0), stop:1 rgb(0, 125, 0))}""" + GENERAL_BTN
-    PREVIEW = """QLineEdit {background-color: rgb(238, 238, 238);}"""
-    OUTPUT = """QLineEdit {}"""    
+    GENERAL_BTN = """QPushButton:pressed {{border-style: inset;background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(69, 209, 209), stop:1 rgb(69, 209, 209))}} QPushButton {{font-weight:bold;font-size:{0[button_font]}px;border-style: outset;border-width: 1px;border-radius: 1px;border-color: grey;margin: 0.5px;}}"""
+    NUM_BTN = """QPushButton {{background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(210, 210, 210), stop:1 rgb(185, 185, 185))}}""" + GENERAL_BTN
+    INP_BTN = """QPushButton {{background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(210, 210, 0), stop:1 rgb(185, 185, 0))}}""" + GENERAL_BTN
+    ACT_BTN = """QPushButton {{background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(0, 150, 0), stop:1 rgb(0, 125, 0))}}""" + GENERAL_BTN
+    PREVIEW = """QLineEdit {{font-size: {0[output_font]}px; background-color: rgb(238, 238, 238);}}"""
+    OUTPUT = """QLineEdit {{font-size: {0[output_font]}px;}}"""
+    
+    def get(name):
+        return getattr(STYLE, name).format(USERPREF.STYLE)
+
+
+class USERPREF:
+    OUTPUT_ROUND = -1
+    STYLE = {"output_font" : 16, "button_font" : 14}
 
 
 class PREF:
     VERSION = "1.0"
     NAME = "Abel Calculator v{}".format(VERSION)
-    INP_NUM = 2
-    OUT_LEN = 7
     DBG_UI_PATH = "design.ui"
+    DBG_UI_SETTINGS_PATH = "settings.ui"
     CONSTS = {"PI" : math.pi, "E" : math.e}
     FUNCS = {"log" : math.log, "cos" : math.cos, "sin" : math.sin, "tg" : math.tan, 
              "arccos" : math.acos, "arcsin" : math.asin, "arctg" : math.atan, "gcd" : math.gcd,
@@ -33,7 +40,17 @@ class PREF:
     ABOUT = "Abel Calculator is a small app made by\nAndrew Belyaev (Russia, Moscow, School 179)\nas a scholar micro-project.\n\nThis project is hosted on GitHub at\nhttps://github.com/abel1502/QtCalc"
 
 
+class SignalController(QObject):
+    redrawStyleSignal = pyqtSignal()
+    
+    def __init__(self):
+        super().__init__()
+        #self.redrawStyleSignal = pyqtSignal()
+
+
 class MainWidget(QMainWindow):
+    mainSC = SignalController()
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         uic.loadUi(PREF.DBG_UI_PATH, self)
@@ -42,7 +59,8 @@ class MainWidget(QMainWindow):
     def initUI(self):
         self.setWindowTitle(PREF.NAME)
         
-        self.output.setStyleSheet(STYLE.OUTPUT)
+        self.output.setStyleSheet(STYLE.get("OUTPUT"))
+        self.mainSC.redrawStyleSignal.connect(lambda: self.output.setStyleSheet(STYLE.get("OUTPUT")))
         self.GLayout.addWidget(self.output, 0, 0, 1, 6)
         
         for const in sorted(PREF.CONSTS):
@@ -75,9 +93,11 @@ class MainWidget(QMainWindow):
             lBtn.setFocusPolicy(Qt.NoFocus)
             lBtn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             if text in "0123456789":
-                lBtn.setStyleSheet(STYLE.NUM_BTN)
+                lBtn.setStyleSheet(STYLE.get("NUM_BTN"))
+                self.mainSC.redrawStyleSignal.connect((lambda i: lambda: i.setStyleSheet(STYLE.get("NUM_BTN")))(lBtn))
             else:
-                lBtn.setStyleSheet(STYLE.INP_BTN)
+                lBtn.setStyleSheet(STYLE.get("INP_BTN"))
+                self.mainSC.redrawStyleSignal.connect((lambda i: lambda: i.setStyleSheet(STYLE.get("INP_BTN")))(lBtn))
             self.GLayout.addWidget(lBtn, x + 2, y, *args)
             return lBtn
         
@@ -87,7 +107,8 @@ class MainWidget(QMainWindow):
             lBtn.setMinimumSize(32, 32)
             lBtn.setFocusPolicy(Qt.NoFocus)
             lBtn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-            lBtn.setStyleSheet(STYLE.ACT_BTN)
+            lBtn.setStyleSheet(STYLE.get("ACT_BTN"))
+            self.mainSC.redrawStyleSignal.connect((lambda i: lambda: i.setStyleSheet(STYLE.get("ACT_BTN")))(lBtn))
             self.GLayout.addWidget(lBtn, x + 2, y, *args)
             return lBtn
         
@@ -125,7 +146,8 @@ class MainWidget(QMainWindow):
         self.preOutput = QLineEdit(self)
         self.preOutput.setReadOnly(True)
         self.preOutput.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.preOutput.setStyleSheet(STYLE.PREVIEW)
+        self.preOutput.setStyleSheet(STYLE.get("PREVIEW"))
+        self.mainSC.redrawStyleSignal.connect(lambda: self.preOutput.setStyleSheet(STYLE.get("PREVIEW")))
         self.preOutput.setFocusPolicy(Qt.NoFocus)
         self.GLayout.addWidget(self.preOutput, 2, 0, 1, 3)        
     
@@ -133,12 +155,15 @@ class MainWidget(QMainWindow):
         self.curExpr = []
         self.variables = ["0" for _ in range(PREF.VAR_COUNT)]
         self.cursorPos = 0
-        self.parser = parser.Parser(aVars=PREF.CONSTS, aFuncs=PREF.FUNCS)
+        self.parser = _parser.Parser(aVars=PREF.CONSTS, aFuncs=PREF.FUNCS)
         
         self.initUI()
         
+        self.settingsForm = SettingsWidget()
+        
         self.actionExit.triggered.connect(lambda: sys.exit(0))
         self.actionAbout.triggered.connect(lambda: QMessageBox.about(self, "About " + PREF.NAME, PREF.ABOUT))
+        self.actionPreferences.triggered.connect(lambda: self.settingsForm.show())
         
         self.setOutput()
         self.preCalculate()
@@ -288,6 +313,29 @@ class MainWidget(QMainWindow):
         self.parser.feed(lExpr)
         self.parser.updateVarsFuncs(aVars=lVars)
         return self.parser.evaluate()
+
+
+class SettingsWidget(QWidget):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        uic.loadUi(PREF.DBG_UI_SETTINGS_PATH, self)
+        self.init()
+    
+    def init(self):
+        self.buttonFont.setValue(USERPREF.STYLE["button_font"])
+        self.ioFont.setValue(USERPREF.STYLE["output_font"])
+        
+        self.buttonFont.valueChanged[int].connect(lambda v: self.setStyle("button_font", v))
+        self.ioFont.valueChanged[int].connect(lambda v: self.setStyle("output_font", v))
+        
+    
+    def setStyle(self, key, value):
+        try:
+            USERPREF.STYLE[key] = value
+            MainWidget.mainSC.redrawStyleSignal.emit()
+        except Exception as e:
+            print(e)
+
 
 def main():
     lApplication = QApplication(sys.argv)
