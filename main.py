@@ -33,7 +33,7 @@ class USERPREF:
 
 
 class PREF:
-    VERSION = "1.2"
+    VERSION = "1.3"
     NAME = "Abel Calculator v{}".format(VERSION)
     DBG_UI_PATH = "design.ui"
     DBG_UI_SETTINGS_PATH = "settings.ui"
@@ -196,6 +196,9 @@ class MainWidget(QMainWindow):
             if event.key() == Qt.Key_Right:
                 self.moveRight()
                 return True
+            if event.key() == Qt.Key_Delete:
+                self.clear()
+                return True
             #print(event.key())
         return super().event(event)
     
@@ -331,6 +334,7 @@ class MainWidget(QMainWindow):
     def clear(self):
         self.curExpr = []
         self.cursorPos = 0
+        self.addHistory()
         self.setOutput()
         self.preCalculate()
     
@@ -353,7 +357,12 @@ class MainWidget(QMainWindow):
     def calculate(self):
         try:
             value, lExpr = self._calculate(self.curExpr)
-            self.setOutput("{}={}".format(lExpr, value))
+            #self.setOutput("{}={}".format(lExpr, value))
+            self.curExpr = list(str(value))
+            self.cursorPos = len(self.curExpr)
+            self.addHistory()
+            self.setOutput()
+            self.preCalculate()
         except Exception as e:
             self.handleError(e)
     

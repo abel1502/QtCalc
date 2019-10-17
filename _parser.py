@@ -2,20 +2,20 @@ from enum import Enum
 
 
 class ParserException(Exception):
-    def __init__(self, text, pos, *args, **kwargs):
-        super().__init__("{} at lexem #{}".format(text, pos), *args, **kwargs)
+    def __init__(self, text, pos, lex=None, *args, **kwargs):
+        super().__init__("{} at lexem #{}".format(text, pos) + (" (\"{}\")".format(lex.pStr) if lex else ""), *args, **kwargs)
 
 class BracketException(ParserException):
-    def __init__(self, pos, *args, **kwargs):
-        super().__init__("Expected a bracket", pos, *args, **kwargs)
+    def __init__(self, pos, lex=None, *args, **kwargs):
+        super().__init__("Expected a bracket", pos, lex, *args, **kwargs)
 
 class UnknownFunctionException(ParserException):
-    def __init__(self, name, pos, *args, **kwargs):
-        super().__init__("Unexpected function '{}'".format(name), pos, *args, **kwargs)
+    def __init__(self, name, pos, lex=None, *args, **kwargs):
+        super().__init__("Unexpected function '{}'".format(name), pos, lex, *args, **kwargs)
 
 class UnknownVariableException(ParserException):
-    def __init__(self, name, pos, *args, **kwargs):
-        super().__init__("Unexpected constant/variable '{}'".format(name), pos, *args, **kwargs)
+    def __init__(self, name, pos, lex=None, *args, **kwargs):
+        super().__init__("Unexpected constant/variable '{}'".format(name), pos, lex, *args, **kwargs)
 
 
 class LexType(Enum):
@@ -102,9 +102,9 @@ class Parser:
             return 0
         lRes = self.parseExpr()
         if not self.pCurLex.isEnd():
-            raise ParserException("Expression has an extra appendix", self.pCurId)
+            raise ParserException("Expression has an extra appendix", self.pCurId, self.pCurLex)
         if type(lRes) not in {int, float}:
-            raise ParserException("Result is not a number")
+            raise ParserException("Result is not a number", -1)
         return lRes
     
     def clear(self):
@@ -169,7 +169,7 @@ class Parser:
             return self.parseNumber()
         if self.pCurLex.pType is LexType.name:
             return self.parseName()
-        raise ParserException("Unexpected lexem", self.pCurId)
+        raise ParserException("Unexpected lexem", self.pCurId, self.pCurLex)
     
     def parseNumber(self):
         lRes = []
@@ -195,7 +195,7 @@ class Parser:
             else:
                 lRes = self.parseSequence()
             if self.pCurLex.pType is not LexType.bracketClose:
-                raise BracketException(self.pCurId)
+                raise BracketException(self.pCurId, self.pCurLex)
             self.nextLex()
             try:
                 lVal = self.pFuncs[lName](*lRes)
