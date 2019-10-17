@@ -5,6 +5,19 @@ class ParserException(Exception):
     def __init__(self, text, pos, *args, **kwargs):
         super().__init__("{} at lexem #{}".format(text, pos), *args, **kwargs)
 
+class BracketException(ParserException):
+    def __init__(self, pos, *args, **kwargs):
+        super().__init__("Expected a bracket", pos, *args, **kwargs)
+
+class UnknownFunctionException(ParserException):
+    def __init__(self, name, pos, *args, **kwargs):
+        super().__init__("Unexpected function '{}'".format(name), pos, *args, **kwargs)
+
+class UnknownVariableException(ParserException):
+    def __init__(self, name, pos, *args, **kwargs):
+        super().__init__("Unexpected constant/variable '{}'".format(name), pos, *args, **kwargs)
+
+
 class LexType(Enum):
     end = 0
     digit = 1
@@ -90,6 +103,8 @@ class Parser:
         lRes = self.parseExpr()
         if not self.pCurLex.isEnd():
             raise ParserException("Expression has an extra appendix", self.pCurId)
+        if type(lRes) not in {int, float}:
+            raise ParserException("Result is not a number")
         return lRes
     
     def clear(self):
@@ -145,15 +160,16 @@ class Parser:
             return self.parseDeg()
         if self.pCurLex.pType is LexType.bracketOpen:
             self.nextLex()
-            lRes = self.parseDeg()
-            assert self.pCurLex.pType is LexType.bracketClose
+            lRes = self.parseExpr()
+            if self.pCurLex.pType is not LexType.bracketClose:
+                raise BracketException(self.pCurId)
             self.nextLex()
             return lRes
         if self.pCurLex.pType is LexType.digit:
             return self.parseNumber()
         if self.pCurLex.pType is LexType.name:
             return self.parseName()
-        assert False
+        raise ParserException("Unexpected lexem", self.pCurId)
     
     def parseNumber(self):
         lRes = []
@@ -178,11 +194,20 @@ class Parser:
                 lRes = []
             else:
                 lRes = self.parseSequence()
-            assert self.pCurLex.pType is LexType.bracketClose
+            if self.pCurLex.pType is not LexType.bracketClose:
+                raise BracketException(self.pCurId)
             self.nextLex()
-            return self.pFuncs[lName](*lRes)  # TODO: Verify int/float
+            try:
+                lVal = self.pFuncs[lName](*lRes)
+            except KeyError:
+                raise UnknownFunctionException(lName, self.pCurId)
+            assert isinstance(lVal, (int, float))
+            return lVal
         else:
-            return self.pVars[lName]
+            try:
+                return self.pVars[lName]
+            except:
+                raise UnknownVariableException(lName, self.pCurId)
     
     def parseSequence(self):
         lRes = [self.parseExpr()]

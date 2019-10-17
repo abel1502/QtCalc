@@ -20,12 +20,12 @@ class STYLE:
 
 
 class USERPREF:
-    OUTPUT_ROUND = -1
+    CALCULATION = {"output_round" : -1}
     STYLE = {"output_font" : 16, "button_font" : 14}
 
 
 class PREF:
-    VERSION = "1.0"
+    VERSION = "1.1"
     NAME = "Abel Calculator v{}".format(VERSION)
     DBG_UI_PATH = "design.ui"
     DBG_UI_SETTINGS_PATH = "settings.ui"
@@ -33,7 +33,7 @@ class PREF:
     FUNCS = {"log" : math.log, "cos" : math.cos, "sin" : math.sin, "tg" : math.tan, 
              "arccos" : math.acos, "arcsin" : math.asin, "arctg" : math.atan, "gcd" : math.gcd,
              "factorial" : math.factorial, "abs" : abs, "deg" : math.degrees, "rad" : math.radians,
-             "int" : int, "float" : float}
+             "int" : int, "float" : float, "sqrt" : lambda x: x ** 0.5}
     CURSOR = "_"
     VAR_COUNT = 10
     VAR_LABEL = "<{}>={}"
@@ -42,10 +42,10 @@ class PREF:
 
 class SignalController(QObject):
     redrawStyleSignal = pyqtSignal()
+    recalcSignal = pyqtSignal()
     
     def __init__(self):
         super().__init__()
-        #self.redrawStyleSignal = pyqtSignal()
 
 
 class MainWidget(QMainWindow):
@@ -164,6 +164,7 @@ class MainWidget(QMainWindow):
         self.actionExit.triggered.connect(lambda: sys.exit(0))
         self.actionAbout.triggered.connect(lambda: QMessageBox.about(self, "About " + PREF.NAME, PREF.ABOUT))
         self.actionPreferences.triggered.connect(lambda: self.settingsForm.show())
+        self.mainSC.recalcSignal.connect(self.preCalculate)
         
         self.setOutput()
         self.preCalculate()
@@ -185,7 +186,7 @@ class MainWidget(QMainWindow):
     def keyPressEvent(self, event):
         if event.text() in list("01234567890*/+-%().,"):
             self.processInput(event.text())
-        if event.text() in list("\r\n= "):
+        if event.text() in list("\r\n="):
             self.calculate()
         #print(repr(event.text()), event.key())
         super().keyPressEvent(event)
@@ -312,8 +313,11 @@ class MainWidget(QMainWindow):
         lExpr = self.getExpr()
         self.parser.feed(lExpr)
         self.parser.updateVarsFuncs(aVars=lVars)
-        return self.parser.evaluate()
-
+        lRes = self.parser.evaluate()
+        if isinstance(lRes, float) and USERPREF.CALCULATION["output_round"] != -1:
+            lRes = round(lRes, USERPREF.CALCULATION["output_round"])
+        return lRes
+        
 
 class SettingsWidget(QWidget):
     def __init__(self, *args, **kwargs):
@@ -322,19 +326,34 @@ class SettingsWidget(QWidget):
         self.init()
     
     def init(self):
-        self.buttonFont.setValue(USERPREF.STYLE["button_font"])
-        self.ioFont.setValue(USERPREF.STYLE["output_font"])
+        def genSpinBoxInput(settingsDict, settingName, settingLabel=None, min=0, max=100):
+            fieldWidget = QSpinBox()
+            fieldWidget.setMinimum(min)
+            fieldWidget.setMaximum(max)
+            fieldWidget.setValue(settingsDict[settingName])
+            fieldWidget.valueChanged[int].connect(lambda v: self.setSetting(settingsDict, settingName, v))
+            if settingLabel is None:
+                settingLabel = settingName
+            self.formLayout.addRow(settingLabel, fieldWidget)
+            return fieldWidget
         
-        self.buttonFont.valueChanged[int].connect(lambda v: self.setStyle("button_font", v))
-        self.ioFont.valueChanged[int].connect(lambda v: self.setStyle("output_font", v))
+        genSpinBoxInput(USERPREF.STYLE, "button_font", "Button font size", 5, 50)
+        genSpinBoxInput(USERPREF.STYLE, "output_font", "Input-output font size", 5, 50)
+        genSpinBoxInput(USERPREF.CALCULATION, "output_round", "Output precision (-1 = no rounding)", -1, 20)
+        
+        #self.buttonFont.setValue(USERPREF.STYLE["button_font"])
+        #self.ioFont.setValue(USERPREF.STYLE["output_font"])
+        
+        #self.buttonFont.valueChanged[int].connect(lambda v: self.setStyle("button_font", v))
+        #self.ioFont.valueChanged[int].connect(lambda v: self.setStyle("output_font", v))
         
     
-    def setStyle(self, key, value):
-        try:
-            USERPREF.STYLE[key] = value
+    def setSetting(self, settingsDict, key, value):
+        settingsDict[key] = value
+        if settingsDict is USERPREF.STYLE:
             MainWidget.mainSC.redrawStyleSignal.emit()
-        except Exception as e:
-            print(e)
+        if settingsDict is USERPREF.CALCULATION:
+            MainWidget.mainSC.recalcSignal.emit()
 
 
 def main():
