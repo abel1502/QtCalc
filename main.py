@@ -179,8 +179,8 @@ class MainWidget(QMainWindow):
         self.mainSC.recalcSignal.connect(self.preCalculate)
         self.actionUndo.triggered.connect(self.undo)  # TODO: Disable inapplicable
         self.actionRedo.triggered.connect(self.redo)
-        self.actionUndo.setShortcut(QKeySequence("Ctrl-Z"))
-        self.actionRedo.setShortcut(QKeySequence("Ctrl-Y"))  # R?
+        self.actionUndo.setShortcut(QKeySequence("Ctrl+Z"))
+        self.actionRedo.setShortcut(QKeySequence("Ctrl+Y"))  # R?
         
         self.setOutput()
         self.preCalculate()
