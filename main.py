@@ -218,11 +218,21 @@ class MainWidget(QMainWindow):
     
     def redo(self):
         try:
-            mp = QMediaPlayer()
-            #mp.setMedia(QMediaContent(QUrl.fromLocalFile(resources.extractFile("Redo.mp3"))))
-            mp.setMedia(QMediaContent(QUrl.fromLocalFile("/storage/emulated/0/git/QtCalc/Redo.mp3")))
-            time.sleep(5)
-            mp.play()
+            playlist = QMediaPlaylist()
+            url = QUrl.fromLocalFile("./sound2.mp3")
+            playlist.addMedia(QMediaContent(url))
+            playlist.setPlaybackMode(QMediaPlaylist.Loop)
+            player = QMediaPlayer()
+            player.setPlaylist(playlist)
+            self.handleError(player.mediaStatus())
+            player.play()
+            return
+            #mp = QMediaPlayer()
+            ##mp.setMedia(QMediaContent(QUrl.fromLocalFile(resources.extractFile("Redo.mp3"))))
+            #mp.setMedia(QMediaContent(QUrl.fromLocalFile("Redo.mp3")))
+            #time.sleep(3)
+            #self.handleError(mp.mediaStatus())
+            #mp.play()
         except Exception as e:
             self.handleError(e)
     
