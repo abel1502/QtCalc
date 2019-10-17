@@ -3,8 +3,12 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
+from PyQt5.QtMultimedia import *
 import math
 import _parser
+from collections import deque
+#import resources
+import time
 
 
 class STYLE:
@@ -25,7 +29,7 @@ class USERPREF:
 
 
 class PREF:
-    VERSION = "1.1"
+    VERSION = "1.2"
     NAME = "Abel Calculator v{}".format(VERSION)
     DBG_UI_PATH = "design.ui"
     DBG_UI_SETTINGS_PATH = "settings.ui"
@@ -37,6 +41,7 @@ class PREF:
     CURSOR = "_"
     VAR_COUNT = 10
     VAR_LABEL = "<{}>={}"
+    HISTORY_SIZE = 20
     ABOUT = "Abel Calculator is a small app made by\nAndrew Belyaev (Russia, Moscow, School 179)\nas a scholar micro-project.\n\nThis project is hosted on GitHub at\nhttps://github.com/abel1502/QtCalc"
 
 
@@ -138,6 +143,7 @@ class MainWidget(QMainWindow):
         genActBtn("C", self.clear, 0, 5)
         genActBtn("<-", self.backspace, 1, 5)
         genInpBtn("**", 2, 5)
+        #genActBtn("Ctrl-Z", lambda: None, 3, 5)
         genActBtn("=", self.calculate, 3, 5, 2, 1)
         
         genActBtn("<", self.moveLeft, 0, 3)
@@ -153,6 +159,8 @@ class MainWidget(QMainWindow):
     
     def init(self):
         self.curExpr = []
+        self.history = deque([[]])
+        self.historyPos = 0
         self.variables = ["0" for _ in range(PREF.VAR_COUNT)]
         self.cursorPos = 0
         self.parser = _parser.Parser(aVars=PREF.CONSTS, aFuncs=PREF.FUNCS)
@@ -165,6 +173,10 @@ class MainWidget(QMainWindow):
         self.actionAbout.triggered.connect(lambda: QMessageBox.about(self, "About " + PREF.NAME, PREF.ABOUT))
         self.actionPreferences.triggered.connect(lambda: self.settingsForm.show())
         self.mainSC.recalcSignal.connect(self.preCalculate)
+        self.actionUndo.triggered.connect(self.undo)  # TODO: Disable inapplicable
+        self.actionRedo.triggered.connect(self.redo)
+        self.actionUndo.setShortcut(QKeySequence("Ctrl-Z"))
+        self.actionRedo.setShortcut(QKeySequence("Ctrl-Y"))  # R?
         
         self.setOutput()
         self.preCalculate()
@@ -190,6 +202,29 @@ class MainWidget(QMainWindow):
             self.calculate()
         #print(repr(event.text()), event.key())
         super().keyPressEvent(event)
+    
+    def addHistory(self):  # TODO: Limit; deque
+        return
+        self.historyPos += 1
+        if self.historyPos > PREF.HISTORY_SIZE:
+            self.history.popleft()
+            self.historyPos -= 1
+        while len(self.history) > historyPos:
+            self.history.pop()
+        self.history.append(self.curExpr)
+    
+    def undo(self):
+        pass
+    
+    def redo(self):
+        try:
+            mp = QMediaPlayer()
+            #mp.setMedia(QMediaContent(QUrl.fromLocalFile(resources.extractFile("Redo.mp3"))))
+            mp.setMedia(QMediaContent(QUrl.fromLocalFile("/storage/emulated/0/git/QtCalc/Redo.mp3")))
+            time.sleep(5)
+            mp.play()
+        except Exception as e:
+            self.handleError(e)
     
     def moveLeft(self):
         self.cursorPos -= 1
@@ -219,6 +254,11 @@ class MainWidget(QMainWindow):
             return
         self.curExpr.insert(self.cursorPos, item)
         self.cursorPos += 1
+        self.addHistory()
+    
+    def setExpr(self, expr, cursorPos=0):
+        self.curExpr = expr
+        self.cursorPos = cursorPos
     
     def handleError(self, err):
         QErrorMessage.qtHandler().showMessage(repr(err))
@@ -340,13 +380,6 @@ class SettingsWidget(QWidget):
         genSpinBoxInput(USERPREF.STYLE, "button_font", "Button font size", 5, 50)
         genSpinBoxInput(USERPREF.STYLE, "output_font", "Input-output font size", 5, 50)
         genSpinBoxInput(USERPREF.CALCULATION, "output_round", "Output precision (-1 = no rounding)", -1, 20)
-        
-        #self.buttonFont.setValue(USERPREF.STYLE["button_font"])
-        #self.ioFont.setValue(USERPREF.STYLE["output_font"])
-        
-        #self.buttonFont.valueChanged[int].connect(lambda v: self.setStyle("button_font", v))
-        #self.ioFont.valueChanged[int].connect(lambda v: self.setStyle("output_font", v))
-        
     
     def setSetting(self, settingsDict, key, value):
         settingsDict[key] = value
