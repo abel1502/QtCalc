@@ -9,6 +9,9 @@ import _parser
 from collections import deque
 #import resources
 import time
+import platform
+import os
+from copy import copy  # deepcopy?
 
 
 class STYLE:
@@ -41,7 +44,7 @@ class PREF:
     CURSOR = "_"
     VAR_COUNT = 10
     VAR_LABEL = "<{}>={}"
-    HISTORY_SIZE = 20
+    HISTORY_SIZE = 100
     ABOUT = "Abel Calculator is a small app made by\nAndrew Belyaev (Russia, Moscow, School 179)\nas a scholar micro-project.\n\nThis project is hosted on GitHub at\nhttps://github.com/abel1502/QtCalc"
 
 
@@ -203,38 +206,47 @@ class MainWidget(QMainWindow):
         #print(repr(event.text()), event.key())
         super().keyPressEvent(event)
     
-    def addHistory(self):  # TODO: Limit; deque
-        return
+    def addHistory(self):
         self.historyPos += 1
         if self.historyPos > PREF.HISTORY_SIZE:
             self.history.popleft()
             self.historyPos -= 1
-        while len(self.history) > historyPos:
+        while len(self.history) > self.historyPos:
             self.history.pop()
-        self.history.append(self.curExpr)
+        self.history.append(copy(self.curExpr))
     
     def undo(self):
-        pass
+        if self.historyPos <= 0:
+            return
+        self.historyPos -= 1
+        self.curExpr = copy(self.history[self.historyPos])
+        self.setOutput()
+        self.preCalculate()
     
     def redo(self):
-        try:
-            playlist = QMediaPlaylist()
-            url = QUrl.fromLocalFile("./sound2.mp3")
-            playlist.addMedia(QMediaContent(url))
-            playlist.setPlaybackMode(QMediaPlaylist.Loop)
-            player = QMediaPlayer()
-            player.setPlaylist(playlist)
-            self.handleError(player.mediaStatus())
-            player.play()
+        if self.historyPos >= len(self.history) - 1:
             return
-            #mp = QMediaPlayer()
-            ##mp.setMedia(QMediaContent(QUrl.fromLocalFile(resources.extractFile("Redo.mp3"))))
-            #mp.setMedia(QMediaContent(QUrl.fromLocalFile("Redo.mp3")))
-            #time.sleep(3)
+        self.historyPos += 1
+        self.curExpr = copy(self.history[self.historyPos])
+        self.setOutput()
+        self.preCalculate()
+        if platform.system() == "Windows" or (platform.system() == "Linux" and "ANDROID_ARGUMENT" not in os.environ):
+            #playlist = QMediaPlaylist()
+            ##url = QUrl.fromLocalFile("./Redo.mp3")
+            #url = QUrl.fromLocalFile("../../Download/Redo.wav")
+            #playlist.addMedia(QMediaContent(url))
+            #playlist.setPlaybackMode(QMediaPlaylist.CurrentItemOnce)
+            #player = QMediaPlayer()
+            #player.setPlaylist(playlist)
+            #self.handleError(player.mediaStatus())
+            #player.play()
+            mp = QMediaPlayer()
+            #mp.setMedia(QMediaContent(QUrl.fromLocalFile(resources.extractFile("Redo.mp3"))))
+            mp.setMedia(QMediaContent(QUrl.fromLocalFile("../../Download/Redo.wav")))
             #self.handleError(mp.mediaStatus())
-            #mp.play()
-        except Exception as e:
-            self.handleError(e)
+            mp.play()
+        else:
+            QMessageBox.information(self, "Oops", "This should have triggered an easter egg, but your OS doesn't seem to be capable of showing it. We're sorry")
     
     def moveLeft(self):
         self.cursorPos -= 1
@@ -271,7 +283,9 @@ class MainWidget(QMainWindow):
         self.cursorPos = cursorPos
     
     def handleError(self, err):
-        QErrorMessage.qtHandler().showMessage(repr(err))
+        #QErrorMessage.qtHandler().showMessage(repr(err))
+        QMessageBox.critical(self, "Error", repr(err))
+        #QMessageBox.warning(self, "Error", repr(err))
     
     def updateVarNames(self):
         for i in range(PREF.VAR_COUNT):
