@@ -11,6 +11,7 @@ from collections import deque
 import time
 import platform
 import os
+import random
 from copy import copy  # deepcopy?
 
 
@@ -230,21 +231,15 @@ class MainWidget(QMainWindow):
         self.curExpr = copy(self.history[self.historyPos])
         self.setOutput()
         self.preCalculate()
+        if random.random() > 0.11:
+            return
         if platform.system() == "Windows" or (platform.system() == "Linux" and "ANDROID_ARGUMENT" not in os.environ):
-            #playlist = QMediaPlaylist()
-            ##url = QUrl.fromLocalFile("./Redo.mp3")
-            #url = QUrl.fromLocalFile("../../Download/Redo.wav")
-            #playlist.addMedia(QMediaContent(url))
-            #playlist.setPlaybackMode(QMediaPlaylist.CurrentItemOnce)
-            #player = QMediaPlayer()
-            #player.setPlaylist(playlist)
-            #self.handleError(player.mediaStatus())
-            #player.play()
-            mp = QMediaPlayer()
-            #mp.setMedia(QMediaContent(QUrl.fromLocalFile(resources.extractFile("Redo.mp3"))))
-            mp.setMedia(QMediaContent(QUrl.fromLocalFile("../../Download/Redo.wav")))
-            #self.handleError(mp.mediaStatus())
-            mp.play()
+            try:
+                mp = QMediaPlayer()
+                mp.mediaStatusChanged.connect(lambda x: mp.play() if x == 3 else None)
+                mp.setMedia(QMediaContent(QUrl.fromLocalFile("./Redo.mp3")))
+            except Exception as e:
+                self.handleError(e)
         else:
             QMessageBox.information(self, "Oops", "This should have triggered an easter egg, but your OS doesn't seem to be capable of showing it. We're sorry")
     
