@@ -291,7 +291,7 @@ class MainWidget(QMainWindow):
     
     def handleError(self, err):
         #QErrorMessage.qtHandler().showMessage(repr(err))
-        QMessageBox.critical(self, "Error", repr(err))
+        QMessageBox.critical(self, "Error", "{}: {}".format(type(err).__name__, str(err)))
         #QMessageBox.warning(self, "Error", repr(err))
     
     def updateVarNames(self):

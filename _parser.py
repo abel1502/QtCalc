@@ -3,7 +3,7 @@ from enum import Enum
 
 class ParserException(Exception):
     def __init__(self, text, pos, lex=None, *args, **kwargs):
-        super().__init__("{} at lexem #{}".format(text, pos) + (" (\"{}\")".format(lex.pStr) if lex else ""), *args, **kwargs)
+        super().__init__("{} at lexem #{}".format(text, pos) + (" \"{}\"".format(lex.pStr) if lex else ""), *args, **kwargs)
 
 class BracketException(ParserException):
     def __init__(self, pos, lex=None, *args, **kwargs):
