@@ -14,6 +14,8 @@ import os
 import random
 from copy import copy  # deepcopy?
 
+QResource.registerResource("./resources.rcc")
+
 
 class STYLE:
     GENERAL_BTN = """QPushButton:pressed {{border-style: inset;background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(69, 209, 209), stop:1 rgb(69, 209, 209))}} QPushButton {{font-weight:bold;font-size:{0[button_font]}px;border-style: outset;border-width: 1px;border-radius: 1px;border-color: grey;margin: 0.5px;}}"""
@@ -35,8 +37,8 @@ class USERPREF:
 class PREF:
     VERSION = "1.3"
     NAME = "Abel Calculator v{}".format(VERSION)
-    DBG_UI_PATH = "design.ui"
-    DBG_UI_SETTINGS_PATH = "settings.ui"
+    DBG_UI_PATH = ":/design.ui"
+    DBG_UI_SETTINGS_PATH = ":/settings.ui"
     CONSTS = {"PI" : math.pi, "E" : math.e}
     FUNCS = {"log" : math.log, "cos" : math.cos, "sin" : math.sin, "tg" : math.tan, 
              "arccos" : math.acos, "arcsin" : math.asin, "arctg" : math.atan, "gcd" : math.gcd,
@@ -240,7 +242,7 @@ class MainWidget(QMainWindow):
             try:
                 mp = QMediaPlayer()
                 mp.mediaStatusChanged.connect(lambda x: mp.play() if x == 3 else None)
-                mp.setMedia(QMediaContent(QUrl.fromLocalFile("./Redo.mp3")))
+                mp.setMedia(QMediaContent(QUrl(":/Redo.mp3")))
             except Exception as e:
                 self.handleError(e)
         else:
