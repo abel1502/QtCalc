@@ -7,15 +7,13 @@ from PyQt5.QtMultimedia import *
 import math
 import _parser
 from collections import deque
-#import resources
 import time
 import platform
 import os
 import random
 from copy import copy  # deepcopy?
-import resources
 
-#QResource.registerResource("./resources.qrc")
+QResource.registerResource("./resources.rcc")
 
 
 class STYLE:
@@ -74,6 +72,7 @@ class MainWidget(QMainWindow):
     
     def initUI(self):
         self.setWindowTitle(PREF.NAME)
+        self.setWindowIcon(QIcon(":/icon.png"))
         
         self.output.setStyleSheet(STYLE.get("OUTPUT"))
         self.mainSC.redrawStyleSignal.connect(lambda: self.output.setStyleSheet(STYLE.get("OUTPUT")))
@@ -248,8 +247,9 @@ class MainWidget(QMainWindow):
         if platform.system() == "Windows" or (platform.system() == "Linux" and "ANDROID_ARGUMENT" not in os.environ):
             try:
                 mp = QMediaPlayer()
-                mp.mediaStatusChanged.connect(lambda x: mp.play() if x == 3 else None)
-                mp.setMedia(QMediaContent(QUrl(":/Redo.mp3")))
+                mp.mediaStatusChanged.connect(lambda x: (mp.play() if x == 3 else None))
+                #mp.setMedia(QMediaContent(QUrl(":/Redo.mp3")))
+                mp.setMedia(QMediaContent(QUrl.fromLocalFile("./resources/Redo.mp3")))
             except Exception as e:
                 self.handleError(e)
         else:
