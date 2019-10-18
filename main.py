@@ -248,8 +248,8 @@ class MainWidget(QMainWindow):
             try:
                 mp = QMediaPlayer()
                 mp.mediaStatusChanged.connect(lambda x: (mp.play() if x == 3 else None))
-                #mp.setMedia(QMediaContent(QUrl(":/Redo.mp3")))
-                mp.setMedia(QMediaContent(QUrl.fromLocalFile("./resources/Redo.mp3")))
+                mp.setMedia(QMediaContent(QUrl("qrc:///Redo.mp3")))
+                #mp.setMedia(QMediaContent(QUrl.fromLocalFile("./resources/Redo.mp3")))
             except Exception as e:
                 self.handleError(e)
         else:
