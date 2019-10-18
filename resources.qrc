@@ -1,0 +1,8 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+  <file alias="Redo.mp3">resources/Redo.mp3</file>
+  <file alias="icon.png">resources/icon.png</file>
+  <file alias="main.ui">resources/main.ui</file>
+  <file alias="settings.ui">resources/settings.ui</file>
+</qresource>
+</RCC>
