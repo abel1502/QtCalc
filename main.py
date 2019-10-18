@@ -13,8 +13,9 @@ import platform
 import os
 import random
 from copy import copy  # deepcopy?
+import resources
 
-QResource.registerResource("./resources.rcc")
+#QResource.registerResource("./resources.qrc")
 
 
 class STYLE:
@@ -37,7 +38,7 @@ class USERPREF:
 class PREF:
     VERSION = "1.3"
     NAME = "Abel Calculator v{}".format(VERSION)
-    DBG_UI_PATH = ":/design.ui"
+    DBG_UI_PATH = ":/main.ui"
     DBG_UI_SETTINGS_PATH = ":/settings.ui"
     CONSTS = {"PI" : math.pi, "E" : math.e}
     FUNCS = {"log" : math.log, "cos" : math.cos, "sin" : math.sin, "tg" : math.tan, 
@@ -64,7 +65,11 @@ class MainWidget(QMainWindow):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi(PREF.DBG_UI_PATH, self)
+        uifile = QFile(PREF.DBG_UI_PATH)
+        uifile.open(QFile.ReadOnly)
+        uic.loadUi(uifile, self)
+        uifile.close()
+        #uic.loadUi(PREF.DBG_UI_PATH, self)
         self.init()
     
     def initUI(self):
@@ -226,6 +231,7 @@ class MainWidget(QMainWindow):
             return
         self.historyPos -= 1
         self.curExpr = copy(self.history[self.historyPos])
+        self.clampCPos()
         self.setOutput()
         self.preCalculate()
     
@@ -234,6 +240,7 @@ class MainWidget(QMainWindow):
             return
         self.historyPos += 1
         self.curExpr = copy(self.history[self.historyPos])
+        self.clampCPos()
         self.setOutput()
         self.preCalculate()
         if random.random() > 0.11:
@@ -345,6 +352,7 @@ class MainWidget(QMainWindow):
             i = self.cursorPos - 1
             self.curExpr.pop(i)
             self.cursorPos -= 1
+        self.addHistory()
         self.setOutput()
         self.preCalculate()
     
@@ -392,7 +400,11 @@ class MainWidget(QMainWindow):
 class SettingsWidget(QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi(PREF.DBG_UI_SETTINGS_PATH, self)
+        uifile = QFile(PREF.DBG_UI_SETTINGS_PATH)
+        uifile.open(QFile.ReadOnly)
+        uic.loadUi(uifile, self)
+        uifile.close()
+        #uic.loadUi(PREF.DBG_UI_SETTINGS_PATH, self)
         self.init()
     
     def init(self):
