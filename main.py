@@ -51,7 +51,7 @@ class PREF:
     HISTORY_SIZE = 100
     ABOUT = "Abel Calculator is a small app made by\nAndrew Belyaev (Russia, Moscow, School 179)\nas a scholar micro-project.\n\nThis project is hosted on GitHub at\nhttps://github.com/abel1502/QtCalc"
     SETTINGS_FILE = "settings.cfg"
-    SETTINGS_DEFAULT = ":/settings.cfg.def"  # TODO: Swap for :/ url (after packing)
+    SETTINGS_DEFAULT = "resources/settings.cfg.def"  # TODO: Swap for :/ url (after packing)
 
 
 class SignalController(QObject):
