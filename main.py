@@ -259,7 +259,8 @@ class MainWidget(QMainWindow):
         if platform.system() == "Windows" or (platform.system() == "Linux" and "ANDROID_ARGUMENT" not in os.environ):
             try:
                 mp = QMediaPlayer()
-                mp.mediaStatusChanged.connect(lambda x: (mp.play() if x == 3 else None))
+                mb = QMessageBox(QMessageBox.Information, "Yay!", "Congratulations, you've triggered an easter egg!\nThe music currently playing is Re:Zero's opening sequence, \"Redo\" by Konomi Suzuki. To stop it, close this dialog.")
+                mp.mediaStatusChanged.connect(lambda x: ((mp.play(), mb.exec(), mp.stop(), mp.mediaStatusChanged.disconnect()) if x == 3 else None))
                 mp.setMedia(QMediaContent(QUrl("qrc:///Redo.mp3")))
                 #mp.setMedia(QMediaContent(QUrl.fromLocalFile("./resources/Redo.mp3")))
             except Exception as e:
