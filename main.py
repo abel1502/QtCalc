@@ -12,6 +12,7 @@ import platform
 import os
 import random
 from copy import copy  # deepcopy?
+import json
 
 QResource.registerResource("./resources.rcc")
 
@@ -29,12 +30,13 @@ class STYLE:
 
 
 class USERPREF:
+    _categories = ("CALCULATION", "STYLE")
     CALCULATION = {"output_round" : -1}
     STYLE = {"output_font" : 16, "button_font" : 14}
 
 
 class PREF:
-    VERSION = "1.3"
+    VERSION = "1.4"
     NAME = "Abel Calculator v{}".format(VERSION)
     DBG_UI_PATH = ":/main.ui"
     DBG_UI_SETTINGS_PATH = ":/settings.ui"
@@ -45,9 +47,11 @@ class PREF:
              "int" : int, "float" : float, "sqrt" : lambda x: x ** 0.5}
     CURSOR = "_"
     VAR_COUNT = 10
-    VAR_LABEL = "<{}>={}"
+    VAR_LABEL = "var{}={}"
     HISTORY_SIZE = 100
     ABOUT = "Abel Calculator is a small app made by\nAndrew Belyaev (Russia, Moscow, School 179)\nas a scholar micro-project.\n\nThis project is hosted on GitHub at\nhttps://github.com/abel1502/QtCalc"
+    SETTINGS_FILE = "settings.cfg"
+    SETTINGS_DEFAULT = "resources/settings.cfg.def"  # TODO: Swap for :/ url (after packing)
 
 
 class SignalController(QObject):
@@ -183,7 +187,7 @@ class MainWidget(QMainWindow):
         self.actionAbout.triggered.connect(lambda: QMessageBox.about(self, "About " + PREF.NAME, PREF.ABOUT))
         self.actionPreferences.triggered.connect(lambda: self.settingsForm.show())
         self.mainSC.recalcSignal.connect(self.preCalculate)
-        self.actionUndo.triggered.connect(self.undo)  # TODO: Disable inapplicable
+        self.actionUndo.triggered.connect(self.undo)
         self.actionRedo.triggered.connect(self.redo)
         self.actionUndo.setShortcut(QKeySequence("Ctrl+Z"))
         self.actionRedo.setShortcut(QKeySequence("Ctrl+Y"))  # R?
@@ -224,6 +228,8 @@ class MainWidget(QMainWindow):
         while len(self.history) > self.historyPos:
             self.history.pop()
         self.history.append(copy(self.curExpr))
+        self.actionRedo.setEnabled(False)
+        self.actionUndo.setEnabled(True)
     
     def undo(self):
         if self.historyPos <= 0:
@@ -233,6 +239,9 @@ class MainWidget(QMainWindow):
         self.clampCPos()
         self.setOutput()
         self.preCalculate()
+        self.actionRedo.setEnabled(True)
+        if self.historyPos <= 0:
+            self.actionUndo.setEnabled(False)
     
     def redo(self):
         if self.historyPos >= len(self.history) - 1:
@@ -242,6 +251,9 @@ class MainWidget(QMainWindow):
         self.clampCPos()
         self.setOutput()
         self.preCalculate()
+        self.actionUndo.setEnabled(True)
+        if self.historyPos >= len(self.history) - 1:
+            self.actionRedo.setEnabled(False)
         if random.random() > 0.11:
             return
         if platform.system() == "Windows" or (platform.system() == "Linux" and "ANDROID_ARGUMENT" not in os.environ):
@@ -408,6 +420,8 @@ class SettingsWidget(QWidget):
         self.init()
     
     def init(self):
+        self.loadFile()
+        
         def genSpinBoxInput(settingsDict, settingName, settingLabel=None, min=0, max=100):
             fieldWidget = QSpinBox()
             fieldWidget.setMinimum(min)
@@ -422,6 +436,10 @@ class SettingsWidget(QWidget):
         genSpinBoxInput(USERPREF.STYLE, "button_font", "Button font size", 5, 50)
         genSpinBoxInput(USERPREF.STYLE, "output_font", "Input-output font size", 5, 50)
         genSpinBoxInput(USERPREF.CALCULATION, "output_round", "Output precision (-1 = no rounding)", -1, 20)
+        
+        lSaveBtn = QPushButton("Save")
+        lSaveBtn.clicked.connect(self.saveFile)
+        self.formLayout.addRow("", lSaveBtn)
     
     def setSetting(self, settingsDict, key, value):
         settingsDict[key] = value
@@ -429,6 +447,27 @@ class SettingsWidget(QWidget):
             MainWidget.mainSC.redrawStyleSignal.emit()
         if settingsDict is USERPREF.CALCULATION:
             MainWidget.mainSC.recalcSignal.emit()
+    
+    def loadFile(self):
+        if not os.path.exists(PREF.SETTINGS_FILE):  # isfile?
+            self.createDefaultFile()
+        with open(PREF.SETTINGS_FILE) as f:
+            cfg = json.load(f)
+        for category in USERPREF._categories:
+            cur = cfg.get(category, [])
+            for key in cur.keys():
+                self.setSetting(getattr(USERPREF, category), key, cur[key])
+   
+    def createDefaultFile(self):
+        QFile.copy(PREF.SETTINGS_DEFAULT, PREF.SETTINGS_FILE)
+    
+    def saveFile(self):
+        cfg = {}
+        for category in USERPREF._categories:
+            cfg[category] = copy(getattr(USERPREF, category))
+        with open(PREF.SETTINGS_FILE, "w") as f:
+            json.dump(cfg, f)
+
 
 
 def main():
