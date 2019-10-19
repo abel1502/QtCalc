@@ -459,7 +459,12 @@ class SettingsWidget(QWidget):
                 self.setSetting(getattr(USERPREF, category), key, cur[key])
    
     def createDefaultFile(self):
-        QFile.copy(PREF.SETTINGS_DEFAULT, PREF.SETTINGS_FILE)
+        sf, df = QFile(PREF.SETTINGS_DEFAULT), QFile(PREF.SETTINGS_FILE)
+        sf.open(QFile.ReadOnly)
+        df.open(QFile.WriteOnly)
+        df.write(sf.readAll())
+        sf.close()
+        df.close()
     
     def saveFile(self):
         cfg = {}
