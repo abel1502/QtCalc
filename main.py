@@ -279,7 +279,7 @@ class MainWidget(QMainWindow):
         self.setOutput()
     
     def clampCPos(self):
-        self.cursorPos = min(len(self.curExpr), max(0, self.cursorPos))
+        self.cursorPos = self.cursorPos % (len(self.curExpr) + 1)
     
     def getExpr(self, showCursor=False):
         if showCursor:
