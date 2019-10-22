@@ -124,7 +124,12 @@ class Parser:
     
     def parseTerm(self):
         ans = self.parseFactor()
-        while self.pCurLex.pType in (LexType.mul, LexType.div, LexType.mod):
+        while self.pCurLex.pType in (LexType.mul, LexType.div, LexType.mod, LexType.name):
+            # Experimental
+            if self.pCurLex.pType is LexType.name:
+                oper = lambda a, b: a * b
+                ans = oper(ans, self.parseName())
+                continue
             if self.pCurLex.pType is LexType.div and self.previewLex().pType is LexType.div:
                 oper = lambda a, b: a // b
                 self.nextLex()
@@ -226,8 +231,9 @@ def main():
     p.feed(["int", "(", ")"])
     print(p.evaluate())
     p.clear()
-
-    p.feed(["2", "*", "*", "3", "*", "*", "2"])
+    
+    p.updateVarsFuncs(aVars={"x":4})
+    p.feed(["2", "*", "*", "3", "x"])
     print(p.evaluate())
 
 

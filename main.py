@@ -51,7 +51,7 @@ class PREF:
     HISTORY_SIZE = 100
     ABOUT = "Abel Calculator is a small app made by\nAndrew Belyaev (Russia, Moscow, School 179)\nas a scholar micro-project.\n\nThis project is hosted on GitHub at\nhttps://github.com/abel1502/QtCalc"
     SETTINGS_FILE = "settings.cfg"
-    SETTINGS_DEFAULT = ":/settings.cfg.def"  # TODO: Swap for :/ url (after packing)
+    SETTINGS_DEFAULT = ":/settings.cfg.def"
 
 
 class SignalController(QObject):
@@ -421,6 +421,7 @@ class SettingsWidget(QWidget):
         self.init()
     
     def init(self):
+        self.setWindowIcon(QIcon(":/icon.png"))
         self.loadFile()
         
         def genSpinBoxInput(settingsDict, settingName, settingLabel=None, min=0, max=100):
