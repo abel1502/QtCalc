@@ -38,8 +38,9 @@ class USERPREF:
 class PREF:
     VERSION = "1.4"
     NAME = "Abel Calculator v{}".format(VERSION)
-    DBG_UI_PATH = ":/main.ui"
-    DBG_UI_SETTINGS_PATH = ":/settings.ui"
+    RESOURCE_PREFIX = "./resources/" # ":/" # TODO: FIX RCC?!
+    DBG_UI_PATH = RESOURCE_PREFIX + "main.ui"
+    DBG_UI_SETTINGS_PATH = RESOURCE_PREFIX + "settings.ui"
     CONSTS = {"PI" : math.pi, "E" : math.e}
     FUNCS = {"log" : math.log, "cos" : math.cos, "sin" : math.sin, "tg" : math.tan, 
              "arccos" : math.acos, "arcsin" : math.asin, "arctg" : math.atan, "gcd" : math.gcd,
@@ -51,7 +52,8 @@ class PREF:
     HISTORY_SIZE = 100
     ABOUT = "Abel Calculator is a small app made by\nAndrew Belyaev (Russia, Moscow, School 179)\nas a scholar micro-project.\n\nThis project is hosted on GitHub at\nhttps://github.com/abel1502/QtCalc"
     SETTINGS_FILE = "settings.cfg"
-    #SETTINGS_DEFAULT = ":/settings.cfg.def"
+    ICON_PATH = RESOURCE_PREFIX + "icon.png"
+    MP3_PATH = RESOURCE_PREFIX + "Redo.mp3"
 
 
 class SignalController(QObject):
@@ -69,6 +71,7 @@ class MainWidget(QMainWindow):
         super().__init__(*args, **kwargs)
         uifile = QFile(PREF.DBG_UI_PATH)
         uifile.open(QFile.ReadOnly)
+        #QMessageBox.about(self, "", str(uifile.readAll()))
         uic.loadUi(uifile, self)
         uifile.close()
         #uic.loadUi(PREF.DBG_UI_PATH, self)
@@ -76,7 +79,7 @@ class MainWidget(QMainWindow):
     
     def initUI(self):
         self.setWindowTitle(PREF.NAME)
-        self.setWindowIcon(QIcon(":/icon.png"))
+        self.setWindowIcon(QIcon(PREF.ICON_PATH))
         
         self.output.setStyleSheet(STYLE.get("OUTPUT"))
         self.mainSC.redrawStyleSignal.connect(lambda: self.output.setStyleSheet(STYLE.get("OUTPUT")))
@@ -261,7 +264,7 @@ class MainWidget(QMainWindow):
                 mp = QMediaPlayer()
                 mb = QMessageBox(QMessageBox.Information, "Yay!", "Congratulations, you've triggered an easter egg!\nThe music currently playing is Re:Zero's opening sequence, \"Redo\" by Konomi Suzuki. To stop it, close this dialog.")
                 mp.mediaStatusChanged.connect(lambda x: ((mp.play(), mb.exec(), mp.stop(), mp.mediaStatusChanged.disconnect()) if x == 3 else None))
-                mp.setMedia(QMediaContent(QUrl("qrc:///Redo.mp3")))
+                mp.setMedia(QMediaContent(QUrl(PREF.MP3_PATH)))
                 #mp.setMedia(QMediaContent(QUrl.fromLocalFile("./resources/Redo.mp3")))
             except Exception as e:
                 self.handleError(e)
