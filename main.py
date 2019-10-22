@@ -51,7 +51,7 @@ class PREF:
     HISTORY_SIZE = 100
     ABOUT = "Abel Calculator is a small app made by\nAndrew Belyaev (Russia, Moscow, School 179)\nas a scholar micro-project.\n\nThis project is hosted on GitHub at\nhttps://github.com/abel1502/QtCalc"
     SETTINGS_FILE = "settings.cfg"
-    SETTINGS_DEFAULT = ":/settings.cfg.def"
+    #SETTINGS_DEFAULT = ":/settings.cfg.def"
 
 
 class SignalController(QObject):
@@ -461,7 +461,8 @@ class SettingsWidget(QWidget):
                 self.setSetting(getattr(USERPREF, category), key, cur[key])
    
     def createDefaultFile(self):
-        QFile.copy(PREF.SETTINGS_DEFAULT, PREF.SETTINGS_FILE)
+        self.saveFile()
+        #QFile.copy(PREF.SETTINGS_DEFAULT, PREF.SETTINGS_FILE)
     
     def saveFile(self):
         cfg = {}
