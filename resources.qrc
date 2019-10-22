@@ -4,6 +4,5 @@
   <file alias="icon.png">resources/icon.png</file>
   <file alias="main.ui">resources/main.ui</file>
   <file alias="settings.ui">resources/settings.ui</file>
-  <file alias="settings.cfg.def">resources/settings.cfg.def</file>
 </qresource>
 </RCC>
