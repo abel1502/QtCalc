@@ -24,6 +24,9 @@ class STYLE:
     ACT_BTN = """QPushButton {{background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(0, 150, 0), stop:1 rgb(0, 125, 0))}}""" + GENERAL_BTN
     PREVIEW = """QLineEdit {{font-size: {0[output_font]}px; background-color: rgb(238, 238, 238);}}"""
     OUTPUT = """QLineEdit {{font-size: {0[output_font]}px;}}"""
+    BTN_LABEL_MAIN = """font-weight:bold"""
+    BTN_LABEL_SECONDARY = """"""
+    
     
     def get(name):
         return getattr(STYLE, name).format(USERPREF.STYLE)
@@ -38,7 +41,8 @@ class USERPREF:
 class PREF:
     VERSION = "1.4"
     NAME = "Abel Calculator v{}".format(VERSION)
-    RESOURCE_PREFIX = "./resources/" # ":/" # TODO: FIX RCC?!
+    USE_RCC = False  # TODO: FIX RCC
+    RESOURCE_PREFIX = "./resources/" if not USE_RCC else ":/"
     DBG_UI_PATH = RESOURCE_PREFIX + "main.ui"
     DBG_UI_SETTINGS_PATH = RESOURCE_PREFIX + "settings.ui"
     CONSTS = {"PI" : math.pi, "E" : math.e}
@@ -54,6 +58,92 @@ class PREF:
     SETTINGS_FILE = "settings.cfg"
     ICON_PATH = RESOURCE_PREFIX + "icon.png"
     MP3_PATH = RESOURCE_PREFIX + "Redo.mp3"
+
+
+class QTimeableButton(QPushButton):
+    shortPressed = pyqtSignal()
+    longPressed = pyqtSignal()
+    held = pyqtSignal()
+    
+    def __init__(self, parent, style="ACT_BTN"):
+        super().__init__(parent)
+        self._pressedTime = 0
+        self._longPressTime = 0.5
+        self._timerInterval = 0.2
+        self.setStyleSheet(STYLE.get(style))  # TODO: Remove?
+        self.pressed.connect(self.handlePressed)
+        self.released.connect(self.handleReleased)
+        self.labelLayout = QVBoxLayout()
+        self.labels = (QLabel(self), QLabel(self))
+        self.labels[0].setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        self.labels[1].setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        self.labelLayout.addStretch()
+        self.labelLayout.addWidget(self.labels[0])
+        self.labelLayout.addWidget(self.labels[1])
+        self.labelLayout.addStretch()
+        self.setLayout(self.labelLayout)
+        self.highlight(0)
+        self.timerLoop = None
+    
+    def highlight(self, index):
+        #if self.labels[1].text() == "":  # TODO: Think over
+        #    return
+        self.labels[index].setStyleSheet(STYLE.BTN_LABEL_MAIN)
+        self.labels[1 - index].setStyleSheet(STYLE.BTN_LABEL_SECONDARY)
+        self.labels[0].adjustSize()
+        self.labels[1].adjustSize()
+        #self.labels[0].update()
+        #self.labels[1].update()
+    
+    def setText(self, index, text):
+        self.labels[index].setText(text)
+        self.labels[index].adjustSize()
+    
+    def text(self, index):
+        return self.labels[index].text()
+    
+    def setLongPressTime(self, lptime):
+        self._longPressTime = lptime
+    
+    def longPressTime(self):
+        return self._longPressTime
+    
+    def setTimerInterval(self, tinterval):
+        self._timerInterval = tinterval
+    
+    def timerInterval(self):
+        return self._timerInterval
+    
+    def handlePressed(self):
+        self._pressedTime = time.time()
+        QTimer.singleShot(int(self._longPressTime * 1000), self.startLoopTimer)
+    
+    def handleReleased(self):
+        self.highlight(0)
+        dt = time.time() - self._pressedTime
+        if dt >= self._longPressTime and self.hasLongAction():
+            self.longPressed.emit()
+        else:
+            self.shortPressed.emit()
+    
+    def startLoopTimer(self):
+        if not self.isDown():
+            return
+        if self.hasLongAction():
+            self.highlight(1)
+        self.timerLoop = QTimer()
+        self.timerLoop.setSingleShot(False)
+        self.timerLoop.timeout.connect(self.timerTick)
+        self.timerLoop.start(int(self._timerInterval * 1000))
+    
+    def timerTick(self):
+        if not self.isDown():
+            self.timerLoop.stop()
+            return
+        self.held.emit()
+    
+    def hasLongAction(self):
+        return self.receivers(self.longPressed) > 0 # 0?1
 
 
 class SignalController(QObject):
@@ -84,6 +174,9 @@ class MainWidget(QMainWindow):
         self.output.setStyleSheet(STYLE.get("OUTPUT"))
         self.mainSC.redrawStyleSignal.connect(lambda: self.output.setStyleSheet(STYLE.get("OUTPUT")))
         self.GLayout.addWidget(self.output, 0, 0, 1, 6)
+        
+        self.actionRedo.setEnabled(False)
+        self.actionUndo.setEnabled(False)
         
         for const in sorted(PREF.CONSTS):
             lAction = QAction(const, self.menuConstant)
@@ -160,11 +253,25 @@ class MainWidget(QMainWindow):
         genActBtn("C", self.clear, 0, 5)
         genActBtn("<-", self.backspace, 1, 5)
         genInpBtn("**", 2, 5)
-        #genActBtn("Ctrl-Z", lambda: None, 3, 5)
         genActBtn("=", self.calculate, 3, 5, 2, 1)
         
         genActBtn("<", self.moveLeft, 0, 3)
         genActBtn(">", self.moveRight, 0, 4)
+        
+        lBtn = QTimeableButton(self, "ACT_BTN")
+        self.i = 0
+        def f():
+            self.i+=1
+        lBtn.shortPressed.connect(lambda: QMessageBox.about(self, "", "Short"))
+        lBtn.longPressed.connect(lambda: QMessageBox.about(self, "", str(self.i)))
+        lBtn.held.connect(f)
+        lBtn.setText(0, "Test")
+        lBtn.setText(1, "Test 2")
+        lBtn.setMinimumSize(32, 32)
+        lBtn.setFocusPolicy(Qt.NoFocus)
+        lBtn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.mainSC.redrawStyleSignal.connect((lambda i: lambda: i.setStyleSheet(STYLE.get("ACT_BTN")))(lBtn))
+        self.GLayout.addWidget(lBtn, 4, 5)
         
         self.preOutput = QLineEdit(self)
         self.preOutput.setReadOnly(True)
@@ -178,7 +285,7 @@ class MainWidget(QMainWindow):
         self.curExpr = []
         self.history = deque([[]])
         self.historyPos = 0
-        self.variables = ["0" for _ in range(PREF.VAR_COUNT)]
+        self.variables = [0 for _ in range(PREF.VAR_COUNT)]
         self.cursorPos = 0
         self.parser = _parser.Parser(aVars=PREF.CONSTS, aFuncs=PREF.FUNCS)
         
@@ -316,24 +423,13 @@ class MainWidget(QMainWindow):
             self.loadVarAction[i].setText(PREF.VAR_LABEL.format(i, self.variables[i]))
     
     def saveVar(self, varId):
-        if self.preOutput.text() == "~":
-            self.handleError("Can't save a wrong variable")
-            return
-        if len(self.preOutput.text()) == 0:
-            value = "0"
-        else:
-            value = self.preOutput.text()
-        if value[-2:] == ".0":
-            value = value[:-2]
-        #if "e" in value:
-        #    self.handleError("Value too big for variable")
-        #    return
-        self.variables[varId] = value
-        #print(value, varId)
-        sys.stdout.flush()
-        self.updateVarNames
-        self.saveVarAction[varId].setText(PREF.VAR_LABEL.format(varId, value))
-        self.loadVarAction[varId].setText(PREF.VAR_LABEL.format(varId, value))
+        try:
+            self.variables[varId] = self._calculate(self.curExpr)[0]
+        except Exception as e:
+            self.handleError(e)
+        self.updateVarNames()
+        self.saveVarAction[varId].setText(PREF.VAR_LABEL.format(varId, self.variables[varId]))
+        self.loadVarAction[varId].setText(PREF.VAR_LABEL.format(varId, self.variables[varId]))
     
     def loadVar(self, varId):
         self.addName("var{}".format(varId))
@@ -402,7 +498,7 @@ class MainWidget(QMainWindow):
     def evaluate(self, expr):
         lVars = {}
         for i in range(PREF.VAR_COUNT):
-            lVars["var{}".format(i)] = float(self.variables[i])
+            lVars["var{}".format(i)] = self.variables[i]
         self.parser.clear()
         lExpr = self.getExpr()
         self.parser.feed(lExpr)
