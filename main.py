@@ -308,8 +308,8 @@ class MainWidget(QMainWindow):
         
         genActBtn("C", self.clear, 0, 5)
         genHoldBtn("<-", self.backspace, 1, 5)
-        genDoubleBtn("sin", "asin", "sin", "asin", 2, 4)
-        genDoubleBtn("cos", "acos", "cos", "acos", 2, 5)
+        genDoubleBtn("sin", "asin", "sin", "arcsin", 2, 4)
+        genDoubleBtn("cos", "acos", "cos", "arccos", 2, 5)
         genActBtn("=", self.calculate, 3, 5, 2, 1)
         
         genHoldBtn("<", self.moveLeft, 0, 3)
