@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -24,8 +25,8 @@ class STYLE:
     ACT_BTN = """QPushButton {{background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgb(0, 150, 0), stop:1 rgb(0, 125, 0))}}""" + GENERAL_BTN
     PREVIEW = """QLineEdit {{font-size: {0[output_font]}px; background-color: rgb(238, 238, 238);}}"""
     OUTPUT = """QLineEdit {{font-size: {0[output_font]}px;}}"""
-    BTN_LABEL_MAIN = """font-weight:bold"""
-    BTN_LABEL_SECONDARY = """"""
+    BTN_LABEL_MAIN = """QLabel {{font-weight:bold;font-size:{0[button_font]}px;}}"""
+    BTN_LABEL_SECONDARY = """QLabel {{font-size:{0[button_secondary_font]}px;}}"""
     
     
     def get(name):
@@ -35,11 +36,11 @@ class STYLE:
 class USERPREF:
     _categories = ("CALCULATION", "STYLE")
     CALCULATION = {"output_round" : -1}
-    STYLE = {"output_font" : 16, "button_font" : 14}
+    STYLE = {"output_font" : 16, "button_font" : 14, "button_secondary_font" : 10}
 
 
 class PREF:
-    VERSION = "1.4"
+    VERSION = "1.5"
     NAME = "Abel Calculator v{}".format(VERSION)
     USE_RCC = False  # TODO: FIX RCC
     RESOURCE_PREFIX = "./resources/" if not USE_RCC else ":/"
@@ -60,40 +61,34 @@ class PREF:
     MP3_PATH = RESOURCE_PREFIX + "Redo.mp3"
 
 
-class QTimeableButton(QPushButton):
+class QDoubleButton(QPushButton):
     shortPressed = pyqtSignal()
     longPressed = pyqtSignal()
-    held = pyqtSignal()
     
-    def __init__(self, parent, style="ACT_BTN"):
+    def __init__(self, parent):
         super().__init__(parent)
         self._pressedTime = 0
         self._longPressTime = 0.5
-        self._timerInterval = 0.2
-        self.setStyleSheet(STYLE.get(style))  # TODO: Remove?
         self.pressed.connect(self.handlePressed)
         self.released.connect(self.handleReleased)
         self.labelLayout = QVBoxLayout()
         self.labels = (QLabel(self), QLabel(self))
         self.labels[0].setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
         self.labels[1].setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        MainWidget.mainSC.redrawStyleSignal.connect(lambda: self.labels[0].setStyleSheet(STYLE.get("BTN_LABEL_MAIN")))
+        MainWidget.mainSC.redrawStyleSignal.connect(lambda: self.labels[1].setStyleSheet(STYLE.get("BTN_LABEL_SECONDARY")))
         self.labelLayout.addStretch()
         self.labelLayout.addWidget(self.labels[0])
         self.labelLayout.addWidget(self.labels[1])
         self.labelLayout.addStretch()
         self.setLayout(self.labelLayout)
         self.highlight(0)
-        self.timerLoop = None
     
     def highlight(self, index):
-        #if self.labels[1].text() == "":  # TODO: Think over
-        #    return
-        self.labels[index].setStyleSheet(STYLE.BTN_LABEL_MAIN)
-        self.labels[1 - index].setStyleSheet(STYLE.BTN_LABEL_SECONDARY)
+        self.labels[index].setStyleSheet(STYLE.get("BTN_LABEL_MAIN"))
+        self.labels[1 - index].setStyleSheet(STYLE.get("BTN_LABEL_SECONDARY"))
         self.labels[0].adjustSize()
         self.labels[1].adjustSize()
-        #self.labels[0].update()
-        #self.labels[1].update()
     
     def setText(self, index, text):
         self.labels[index].setText(text)
@@ -108,15 +103,9 @@ class QTimeableButton(QPushButton):
     def longPressTime(self):
         return self._longPressTime
     
-    def setTimerInterval(self, tinterval):
-        self._timerInterval = tinterval
-    
-    def timerInterval(self):
-        return self._timerInterval
-    
     def handlePressed(self):
         self._pressedTime = time.time()
-        QTimer.singleShot(int(self._longPressTime * 1000), self.startLoopTimer)
+        QTimer.singleShot(int(self._longPressTime * 1000), lambda: self.highlight(1) if self.isDown() else None)
     
     def handleReleased(self):
         self.highlight(0)
@@ -126,11 +115,39 @@ class QTimeableButton(QPushButton):
         else:
             self.shortPressed.emit()
     
+    def hasLongAction(self):
+        return self.receivers(self.longPressed) > 0
+
+
+class QHoldableButton(QPushButton):
+    held = pyqtSignal()
+    
+    def __init__(self, parent):
+        super().__init__(parent)
+        self._longPressTime = 0.5
+        self._timerInterval = 0.1
+        self.pressed.connect(self.handlePressed)
+        self.labelLayout = QVBoxLayout()
+        self.timerLoop = None
+    
+    def setLongPressTime(self, lptime):
+        self._longPressTime = lptime
+    
+    def longPressTime(self):
+        return self._longPressTime
+    
+    def setTimerInterval(self, tinterval):
+        self._timerInterval = tinterval
+    
+    def timerInterval(self):
+        return self._timerInterval
+    
+    def handlePressed(self):
+        QTimer.singleShot(int(self._longPressTime * 1000), self.startLoopTimer)
+    
     def startLoopTimer(self):
         if not self.isDown():
             return
-        if self.hasLongAction():
-            self.highlight(1)
         self.timerLoop = QTimer()
         self.timerLoop.setSingleShot(False)
         self.timerLoop.timeout.connect(self.timerTick)
@@ -141,9 +158,6 @@ class QTimeableButton(QPushButton):
             self.timerLoop.stop()
             return
         self.held.emit()
-    
-    def hasLongAction(self):
-        return self.receivers(self.longPressed) > 0 # 0?1
 
 
 class SignalController(QObject):
@@ -227,6 +241,45 @@ class MainWidget(QMainWindow):
             self.GLayout.addWidget(lBtn, x + 2, y, *args)
             return lBtn
         
+        def genDoubleBtn(text1, text2, action1, action2, x, y, *args):
+            lBtn = QDoubleButton(self)
+            if isinstance(action1, str):
+                lBtn.shortPressed.connect(lambda: self.processInput(action1))
+                if action1 in "0123456789":
+                    lBtn.setStyleSheet(STYLE.get("NUM_BTN"))
+                    self.mainSC.redrawStyleSignal.connect((lambda i: lambda: i.setStyleSheet(STYLE.get("NUM_BTN")))(lBtn))
+                else:
+                    lBtn.setStyleSheet(STYLE.get("INP_BTN"))
+                    self.mainSC.redrawStyleSignal.connect((lambda i: lambda: i.setStyleSheet(STYLE.get("INP_BTN")))(lBtn))
+            else:
+                lBtn.shortPressed.connect(action1)
+                lBtn.setStyleSheet(STYLE.get("ACT_BTN"))
+                self.mainSC.redrawStyleSignal.connect((lambda i: lambda: i.setStyleSheet(STYLE.get("ACT_BTN")))(lBtn))
+            if isinstance(action2, str):
+                lBtn.longPressed.connect(lambda: self.processInput(action2))
+            else:
+                lBtn.longPressed.connect(action2)
+            lBtn.setText(0, text1)
+            lBtn.setText(1, text2)
+            lBtn.setMinimumSize(32, 32)
+            lBtn.setFocusPolicy(Qt.NoFocus)
+            lBtn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            self.GLayout.addWidget(lBtn, x + 2, y, *args)
+            return lBtn
+        
+        def genHoldBtn(text, action, x, y, *args):
+            lBtn = QHoldableButton(self)
+            lBtn.setText(text)
+            lBtn.clicked.connect(action)
+            lBtn.held.connect(action)
+            lBtn.setMinimumSize(32, 32)
+            lBtn.setFocusPolicy(Qt.NoFocus)
+            lBtn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            lBtn.setStyleSheet(STYLE.get("ACT_BTN"))
+            self.mainSC.redrawStyleSignal.connect((lambda i: lambda: i.setStyleSheet(STYLE.get("ACT_BTN")))(lBtn))
+            self.GLayout.addWidget(lBtn, x + 2, y, *args)
+            return lBtn
+        
         genInpBtn("1", 1, 0)
         genInpBtn("2", 1, 1)
         genInpBtn("3", 1, 2)
@@ -236,42 +289,31 @@ class MainWidget(QMainWindow):
         genInpBtn("7", 3, 0)
         genInpBtn("8", 3, 1)
         genInpBtn("9", 3, 2)
-        genInpBtn(",", 4, 0)
+        genDoubleBtn("π", "e", "PI", "E", 4, 0)
         genInpBtn("0", 4, 1)
-        genInpBtn(".", 4, 2)
+        genDoubleBtn(".", ",", ".", ",", 4, 2)
         
-        genInpBtn("/", 1, 3)
-        genInpBtn("*", 2, 3)
+        #genInpBtn("/", 1, 3)
+        genDoubleBtn("/", "//", "/", "//", 1, 3)
+        #genInpBtn("*", 2, 3)
+        genDoubleBtn("*", "%", "*", "%", 2, 3)
         genInpBtn("-", 3, 3)
         genInpBtn("+", 4, 3)
         
-        genInpBtn("//", 1, 4)
-        genInpBtn("%", 2, 4)
+        #genInpBtn("//", 1, 4)
+        #genInpBtn("%", 2, 4)
+        genInpBtn("**", 1, 4)
         genInpBtn("(", 3, 4)
         genInpBtn(")", 4, 4)
         
         genActBtn("C", self.clear, 0, 5)
-        genActBtn("<-", self.backspace, 1, 5)
-        genInpBtn("**", 2, 5)
+        genHoldBtn("<-", self.backspace, 1, 5)
+        genDoubleBtn("sin", "asin", "sin", "asin", 2, 4)
+        genDoubleBtn("cos", "acos", "cos", "acos", 2, 5)
         genActBtn("=", self.calculate, 3, 5, 2, 1)
         
-        genActBtn("<", self.moveLeft, 0, 3)
-        genActBtn(">", self.moveRight, 0, 4)
-        
-        lBtn = QTimeableButton(self, "ACT_BTN")
-        self.i = 0
-        def f():
-            self.i+=1
-        lBtn.shortPressed.connect(lambda: QMessageBox.about(self, "", "Short"))
-        lBtn.longPressed.connect(lambda: QMessageBox.about(self, "", str(self.i)))
-        lBtn.held.connect(f)
-        lBtn.setText(0, "Test")
-        lBtn.setText(1, "Test 2")
-        lBtn.setMinimumSize(32, 32)
-        lBtn.setFocusPolicy(Qt.NoFocus)
-        lBtn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.mainSC.redrawStyleSignal.connect((lambda i: lambda: i.setStyleSheet(STYLE.get("ACT_BTN")))(lBtn))
-        self.GLayout.addWidget(lBtn, 4, 5)
+        genHoldBtn("<", self.moveLeft, 0, 3)
+        genHoldBtn(">", self.moveRight, 0, 4)
         
         self.preOutput = QLineEdit(self)
         self.preOutput.setReadOnly(True)
@@ -535,6 +577,7 @@ class SettingsWidget(QWidget):
             return fieldWidget
         
         genSpinBoxInput(USERPREF.STYLE, "button_font", "Button font size", 5, 50)
+        genSpinBoxInput(USERPREF.STYLE, "button_secondary_font", "Button secondary font size", 5, 50)
         genSpinBoxInput(USERPREF.STYLE, "output_font", "Input-output font size", 5, 50)
         genSpinBoxInput(USERPREF.CALCULATION, "output_round", "Output precision (-1 = no rounding)", -1, 20)
         
