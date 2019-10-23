@@ -124,11 +124,19 @@ class Parser:
     
     def parseTerm(self):
         ans = self.parseFactor()
-        while self.pCurLex.pType in (LexType.mul, LexType.div, LexType.mod, LexType.name):
+        while self.pCurLex.pType in (LexType.mul, LexType.div, LexType.mod, LexType.name, LexType.bracketOpen):
             # Experimental
             if self.pCurLex.pType is LexType.name:
                 oper = lambda a, b: a * b
                 ans = oper(ans, self.parseName())
+                continue
+            if self.pCurLex.pType is LexType.bracketOpen:
+                oper = lambda a, b: a * b
+                self.nextLex()
+                ans = oper(ans, self.parseExpr())
+                if self.pCurLex.pType is not LexType.bracketClose:
+                    raise BracketException(self.pCurId)
+                self.nextLex()
                 continue
             if self.pCurLex.pType is LexType.div and self.previewLex().pType is LexType.div:
                 oper = lambda a, b: a // b
@@ -228,7 +236,7 @@ class Parser:
 
 def main():
     p = Parser(aFuncs={"int" : int})
-    p.feed(["int", "(", ")"])
+    p.feed(["1", "2", "3", "(", "7", ")"])
     print(p.evaluate())
     p.clear()
     
