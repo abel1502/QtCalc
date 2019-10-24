@@ -1,5 +1,10 @@
 from enum import Enum
 
+_DEBUG = False
+def dbg(stage, lex, id):
+    if _DEBUG:
+        print("[{0}] #{2} '{1}'".format(stage, lex, id))
+
 
 class ParserException(Exception):
     def __init__(self, text, pos, lex=None, *args, **kwargs):
@@ -9,14 +14,9 @@ class BracketException(ParserException):
     def __init__(self, pos, lex=None, *args, **kwargs):
         super().__init__("Expected a bracket", pos, lex, *args, **kwargs)
 
-class UnknownFunctionException(ParserException):
+class UnknownNameException(ParserException):
     def __init__(self, name, pos, lex=None, *args, **kwargs):
-        super().__init__("Unexpected function '{}'".format(name), pos, lex, *args, **kwargs)
-
-class UnknownVariableException(ParserException):
-    def __init__(self, name, pos, lex=None, *args, **kwargs):
-        super().__init__("Unexpected constant/variable '{}'".format(name), pos, lex, *args, **kwargs)
-
+        super().__init__("Unknown name '{}'".format(name), pos, lex, *args, **kwargs)
 
 class LexType(Enum):
     end = 0
@@ -103,8 +103,8 @@ class Parser:
         lRes = self.parseExpr()
         if not self.pCurLex.isEnd():
             raise ParserException("Expression has an extra appendix", self.pCurId, self.pCurLex)
-        if type(lRes) not in {int, float}:
-            raise ParserException("Result is not a number", -1)
+        #if type(lRes) not in {int, float}:
+        #    raise ParserException("Result is not a number", -1)
         return lRes
     
     def clear(self):
@@ -115,6 +115,7 @@ class Parser:
     #def parseChar(self, char):  # ?
     
     def parseExpr(self):
+        dbg("expr", self.pCurLex, self.pCurId)
         ans = self.parseTerm()
         while self.pCurLex.pType in (LexType.add, LexType.sub):
             oper = self.pCurLex.getOper()
@@ -123,20 +124,20 @@ class Parser:
         return ans
     
     def parseTerm(self):
+        dbg("term", self.pCurLex, self.pCurId)
+        lCurType = self.pCurLex.pType
         ans = self.parseFactor()
-        while self.pCurLex.pType in (LexType.mul, LexType.div, LexType.mod, LexType.name, LexType.bracketOpen):
-            # Experimental
-            if self.pCurLex.pType is LexType.name:
+        while (self.pCurLex.pType in (LexType.mul, LexType.div, LexType.mod, LexType.name, LexType.bracketOpen)) or (lCurType in (LexType.bracketOpen, LexType.name) and self.pCurLex.pType is LexType.digit):
+            lPrevType = lCurType
+            if self.pCurLex.pType is LexType.name or (lPrevType in (LexType.bracketOpen, LexType.name) and self.pCurLex.pType is LexType.digit):
                 oper = lambda a, b: a * b
-                ans = oper(ans, self.parseName())
+                lCurType = self.pCurLex.pType
+                ans = oper(ans, self.parseFactor())
                 continue
             if self.pCurLex.pType is LexType.bracketOpen:
                 oper = lambda a, b: a * b
-                self.nextLex()
-                ans = oper(ans, self.parseExpr())
-                if self.pCurLex.pType is not LexType.bracketClose:
-                    raise BracketException(self.pCurId)
-                self.nextLex()
+                lCurType = self.pCurLex.pType
+                ans = oper(ans, self.parseDeg())
                 continue
             if self.pCurLex.pType is LexType.div and self.previewLex().pType is LexType.div:
                 oper = lambda a, b: a // b
@@ -144,10 +145,12 @@ class Parser:
             else:
                 oper = self.pCurLex.getOper()
             self.nextLex()
+            lCurType = self.pCurLex.pType
             ans = oper(ans, self.parseFactor())
         return ans
     
     def parseFactor(self):
+        dbg("factor", self.pCurLex, self.pCurId)
         ans = self.parseDeg()
         if self.pCurLex.pType is LexType.mul and self.previewLex().pType is LexType.mul:
             oper = lambda a, b: a ** b
@@ -165,6 +168,7 @@ class Parser:
         #return ans
     
     def parseDeg(self):
+        dbg("deg", self.pCurLex, self.pCurId)
         if self.pCurLex.pType is LexType.sub:
             self.nextLex()
             return -self.parseDeg()
@@ -175,7 +179,7 @@ class Parser:
             self.nextLex()
             lRes = self.parseExpr()
             if self.pCurLex.pType is not LexType.bracketClose:
-                raise BracketException(self.pCurId)
+                raise BracketException(self.pCurId, self.pCurLex)
             self.nextLex()
             return lRes
         if self.pCurLex.pType is LexType.digit:
@@ -185,6 +189,7 @@ class Parser:
         raise ParserException("Unexpected lexem", self.pCurId, self.pCurLex)
     
     def parseNumber(self):
+        dbg("number", self.pCurLex, self.pCurId)
         lRes = []
         while self.pCurLex.pType is LexType.digit:
             lRes.append(self.pCurLex.pStr)
@@ -199,9 +204,14 @@ class Parser:
         return float("".join(lRes))
     
     def parseName(self):
+        dbg("name", self.pCurLex, self.pCurId)
         lName = self.pCurLex.pStr
         self.nextLex()
-        if self.pCurLex.pType is LexType.bracketOpen:
+        if lName in self.pVars:
+            return self.pVars[lName]
+        elif lName in self.pFuncs:
+            if self.pCurLex.pType is not LexType.bracketOpen:
+                raise BracketException(self.pCurId, self.pCurLex)
             self.nextLex()
             if self.pCurLex.pType is LexType.bracketClose:
                 lRes = []
@@ -210,19 +220,14 @@ class Parser:
             if self.pCurLex.pType is not LexType.bracketClose:
                 raise BracketException(self.pCurId, self.pCurLex)
             self.nextLex()
-            try:
-                lVal = self.pFuncs[lName](*lRes)
-            except KeyError:
-                raise UnknownFunctionException(lName, self.pCurId)
-            assert isinstance(lVal, (int, float))
+            lVal = self.pFuncs[lName](*lRes)
+            #assert isinstance(lVal, (int, float))
             return lVal
         else:
-            try:
-                return self.pVars[lName]
-            except:
-                raise UnknownVariableException(lName, self.pCurId)
-    
+            raise UnknownNameException(lName, self.pCurId)
+        
     def parseSequence(self):
+        dbg("sequence", self.pCurLex, self.pCurId)
         lRes = [self.parseExpr()]
         while self.pCurLex.pType is LexType.comma:
             self.nextLex()
@@ -235,13 +240,13 @@ class Parser:
 
 
 def main():
-    p = Parser(aFuncs={"int" : int})
-    p.feed(["1", "2", "3", "(", "7", ")"])
+    p = Parser(aFuncs={"int" : int}, aVars={"x" : 2})
+    p.feed(["int", "(", "x", "1", "7", "*", "*", "2", ")"])
     print(p.evaluate())
     p.clear()
     
     p.updateVarsFuncs(aVars={"x":4})
-    p.feed(["2", "*", "*", "3", "x"])
+    p.feed(["7", "*", "*", "3", "x"])
     print(p.evaluate())
 
 
