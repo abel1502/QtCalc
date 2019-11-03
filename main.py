@@ -40,8 +40,9 @@ class USERPREF:
 
 
 class PREF:
-    VERSION = "1.5"
+    VERSION = "1.6"
     NAME = "Abel Calculator v{}".format(VERSION)
+    USE_SYMPY = True
     USE_RCC = False  # TODO: FIX RCC
     RESOURCE_PREFIX = "./resources/" if not USE_RCC else ":/"
     DBG_UI_PATH = RESOURCE_PREFIX + "main.ui"
@@ -59,6 +60,17 @@ class PREF:
     SETTINGS_FILE = "settings.cfg"
     ICON_PATH = RESOURCE_PREFIX + "icon.png"
     MP3_PATH = RESOURCE_PREFIX + "Redo.mp3"
+
+
+if PREF.USE_SYMPY:
+    import sympy
+    sympy.init_printing(use_unicode=True)
+    PREF.FUNCS.update({"diff" : sympy.diff, "sin" : sympy.sin, "sin_num" : math.sin,
+        "cos" : sympy.cos, "cos_num" : math.cos, "tg" : sympy.tan, "tg_num" : math.tan,
+        "arcsin" : sympy.asin, "arcsin_num" : math.asin, "arccos" : sympy.acos,
+        "arccos_num" : math.acos, "log" : sympy.log, "log_num" : math.log,
+        "factor" : sympy.factor, "simplify" : sympy.simplify, "expand" : sympy.expand,
+        "sqrt" : sympy.sqrt})
 
 
 class QDoubleButton(QPushButton):
@@ -128,33 +140,44 @@ class QHoldableButton(QPushButton):
         self._timerInterval = 0.1
         self.pressed.connect(self.handlePressed)
         self.labelLayout = QVBoxLayout()
-        self.timerLoop = None
+        self.timerSingle = QTimer(self)
+        self.timerSingle.setInterval(int(self._longPressTime * 1000))
+        self.timerSingle.setSingleShot(True)
+        self.timerSingle.timeout.connect(self.startLoopTimer)
+        self.timerLoop = QTimer(self)
+        self.timerLoop.setSingleShot(False)
+        self.timerLoop.setInterval(int(self._timerInterval * 1000))
+        self.timerLoop.timeout.connect(self.timerTick)
     
     def setLongPressTime(self, lptime):
         self._longPressTime = lptime
+        self.timerSingle.setInterval(int(self._longPressTime * 1000))
     
     def longPressTime(self):
         return self._longPressTime
     
     def setTimerInterval(self, tinterval):
         self._timerInterval = tinterval
+        self.timerLoop.setInterval(int(self._timerInterval * 1000))
     
     def timerInterval(self):
         return self._timerInterval
     
     def handlePressed(self):
-        QTimer.singleShot(int(self._longPressTime * 1000), self.startLoopTimer)
+        self.timerSingle.start()
+    
+    def handleReleased(self):
+        self.timerSingle.stop()
+        self.timerLoop.stop()
     
     def startLoopTimer(self):
         if not self.isDown():
             return
-        self.timerLoop = QTimer()
-        self.timerLoop.setSingleShot(False)
-        self.timerLoop.timeout.connect(self.timerTick)
-        self.timerLoop.start(int(self._timerInterval * 1000))
+        self.timerLoop.start()
     
     def timerTick(self):
         if not self.isDown():
+            self.timerSingle.stop()
             self.timerLoop.stop()
             return
         self.held.emit()
@@ -289,7 +312,6 @@ class MainWidget(QMainWindow):
         genInpBtn("7", 3, 0)
         genInpBtn("8", 3, 1)
         genInpBtn("9", 3, 2)
-        genDoubleBtn("π", "e", "PI", "E", 4, 0)
         genInpBtn("0", 4, 1)
         genDoubleBtn(".", ",", ".", ",", 4, 2)
         
@@ -303,6 +325,7 @@ class MainWidget(QMainWindow):
         #genInpBtn("//", 1, 4)
         #genInpBtn("%", 2, 4)
         genInpBtn("**", 1, 4)
+        genDoubleBtn("π", "e", "PI", "E", 4, 0)
         genInpBtn("(", 3, 4)
         genInpBtn(")", 4, 4)
         
@@ -314,6 +337,14 @@ class MainWidget(QMainWindow):
         
         genHoldBtn("<", self.moveLeft, 0, 3)
         genHoldBtn(">", self.moveRight, 0, 4)
+        
+        if PREF.USE_SYMPY:
+            genDoubleBtn("7", "diff", "7", "diff", 3, 0)
+            genDoubleBtn("8", "solve", "8", self.sympy_solve, 3, 1)
+            genDoubleBtn("4", "factor", "4", "factor", 2, 0)
+            genDoubleBtn("9", "simplify", "9", "simplify", 3, 2)
+            genDoubleBtn("5", "expand", "5", "expand", 2, 1)
+            genDoubleBtn("x", "y", "x", "y", 4, 0)
         
         self.preOutput = QLineEdit(self)
         self.preOutput.setReadOnly(True)
@@ -420,6 +451,14 @@ class MainWidget(QMainWindow):
         else:
             QMessageBox.information(self, "Oops", "This should have triggered an easter egg, but your OS doesn't seem to be capable of showing it. We're sorry")
     
+    def sympy_solve(self):
+        try:
+            lExpr = self.evaluate(self.curExpr)
+            lSolutions = sympy.solve(lExpr)
+            QMessageBox.about(self, "Solutions", "{}=0 has the following solutions:\n{}\n(Doesn't work correctly with an infinite number of roots, be aware)".format(lExpr, lSolutions))
+        except Exception as e:
+            self.handleError(e)
+    
     def moveLeft(self):
         self.cursorPos -= 1
         self.clampCPos()
@@ -466,7 +505,7 @@ class MainWidget(QMainWindow):
     
     def saveVar(self, varId):
         try:
-            self.variables[varId] = self._calculate(self.curExpr)[0]
+            self.variables[varId] = self.evaluate(self.curExpr)
         except Exception as e:
             self.handleError(e)
         self.updateVarNames()
@@ -510,19 +549,12 @@ class MainWidget(QMainWindow):
         self.setOutput()
         self.preCalculate()
     
-    def _calculate(self, expr):
-        lExpr = ''.join(expr)
-        lExpr = lExpr if lExpr else "0"
-        value = self.evaluate(lExpr)
-        if not isinstance(value, (int, float)):
-            raise Exception("Invalid statement")
-        return value, lExpr
-    
     def calculate(self):
         try:
-            value, lExpr = self._calculate(self.curExpr)
-            #self.setOutput("{}={}".format(lExpr, value))
-            self.curExpr = list(str(value))
+            value = self.evaluate(self.curExpr)
+            if not isinstance(value, (int, float)) and not PREF.USE_SYMPY:
+                raise Exception("Expression returns a value of an unexpected type.")
+            self.curExpr = list(map(lambda x: x.pStr, self.parser.lexify(str(value))))
             self.cursorPos = len(self.curExpr)
             self.addHistory()
             self.setOutput()
@@ -532,13 +564,16 @@ class MainWidget(QMainWindow):
     
     def preCalculate(self):
         try:
-            value, lExpr = self._calculate(self.curExpr)
+            value = self.evaluate(self.curExpr)
             self.setPreOutput(str(value))
         except Exception as e:
             self.setPreOutput("~")
     
     def evaluate(self, expr):
         lVars = {}
+        if PREF.USE_SYMPY:
+            lVars["x"] = sympy.symbols("x")
+            lVars["y"] = sympy.symbols("y")
         for i in range(PREF.VAR_COUNT):
             lVars["var{}".format(i)] = self.variables[i]
         self.parser.clear()

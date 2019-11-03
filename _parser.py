@@ -237,6 +237,32 @@ class Parser:
     def updateVarsFuncs(self, aVars={}, aFuncs={}):
         self.pVars.update(aVars)
         self.pFuncs.update(aFuncs)
+    
+    def _getName(self, aName, aPos=-1):
+        for v in self.pVars:
+            if v == aName:
+                return Lexem(v)
+        for f in self.pFuncs:
+            if self.pFuncs[f].__name__ == aName:
+                return Lexem(f)
+        raise UnknownNameException(aName, aPos)
+    
+    def lexify(self, data):
+        lCurName = ""
+        lResult = []
+        for i in range(len(data)):
+            lType = Lexem.getLexType(data[i])
+            if lType == LexType.name:
+                lCurName += data[i]
+            else:
+                if lCurName:
+                    lResult.append(self._getName(lCurName, i))
+                    lCurName = ""
+                lResult.append(Lexem(data[i]))
+        if lCurName:
+            lResult.append(self._getName(lCurName, i))
+            lCurName = ""
+        return lResult
 
 
 def main():
