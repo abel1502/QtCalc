@@ -554,7 +554,7 @@ class MainWidget(QMainWindow):
             value = self.evaluate(self.curExpr)
             if not isinstance(value, (int, float)) and not PREF.USE_SYMPY:
                 raise Exception("Expression returns a value of an unexpected type.")
-            self.curExpr = list(map(lambda x: x.pStr, self.parser.lexify(str(value))))
+            self.curExpr = list(map(lambda x: x.pStr, self.parser.lexify(str(value).replace(" ", ""))))
             self.cursorPos = len(self.curExpr)
             self.addHistory()
             self.setOutput()
